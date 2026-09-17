@@ -255,8 +255,16 @@ class VaultApi:
 
 
 def main():
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("aegiscore.vault.app.1.0")
+        except Exception:
+            pass
+
     base_dir = os.path.dirname(os.path.abspath(__file__))
     ui_index = os.path.join(base_dir, "ui", "index.html")
+    icon_path = os.path.join(base_dir, "aegiscore.ico")
 
     api = VaultApi()
 
@@ -271,7 +279,7 @@ def main():
         text_select=False,
     )
 
-    webview.start(debug=False)
+    webview.start(debug=False, icon=icon_path if os.path.exists(icon_path) else None)
 
 
 if __name__ == "__main__":
