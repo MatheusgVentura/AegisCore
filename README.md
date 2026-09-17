@@ -1,6 +1,12 @@
 # 🛡️ AegisCore — Vault Engine
 
-**AegisCore** é um cofre de credenciais e senhas local de alto desempenho e segurança militar, construído com foco em criptografia moderna, privacidade absoluta e design refinado inspirado no tema *Desert Gold*.
+[![License: MIT](https://img.shields.io/badge/License-MIT-gold.svg)](./LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/Platform-Windows-0078D6.svg)](https://www.microsoft.com/windows)
+[![Security](https://img.shields.io/badge/Security-Argon2id%20%2B%20AES--256--GCM-success.svg)](#-arquitetura-criptográfica--segurança)
+[![Open Source](https://img.shields.io/badge/Open%20Source-%E2%99%A5-red.svg)](https://github.com/MatheusgVentura/AegisCore)
+
+**AegisCore** é um cofre de credenciais e senhas local de alto desempenho e segurança militar, construído com foco em criptografia moderna, privacidade absoluta e design refinado inspirado no tema *Desert Gold*. Desenvolvido como software livre e de código aberto (*Open Source*), seguindo o princípio da transparência e segurança auditável por design.
 
 ---
 
@@ -35,6 +41,7 @@
 ├── 📄 iniciar_aegiscore.bat   # Inicializador silencioso com duplo clique
 ├── 📄 requirements.txt        # Dependências do Python
 ├── 📄 README.md               # Documentação técnica do projeto
+├── 📄 LICENSE                 # Licença de código aberto MIT
 ├── 📄 aegiscore.ico           # Ícone do aplicativo para o Windows
 ├── 📄 vault.enc               # Cofre de senhas criptografado local
 ├── 📄 vault.enc.bak           # Backup de segurança automático
@@ -49,19 +56,30 @@
 
 ---
 
-## 🚀 Como Executar
+## 🚀 Como Usar e Executar
 
-### 1. Atalho na Área de Trabalho
-Você pode abrir o aplicativo diretamente pelo atalho **AegisCore** criado na sua Área de Trabalho.
+### 🌟 Para Usuários Finais (Sem precisar instalar Python)
+1. Vá até a aba [**Releases**](https://github.com/MatheusgVentura/AegisCore/releases) do repositório.
+2. Baixe o pacote portátil `AegisCore-Portable-Windows.zip` ou o instalador `AegisCore-Setup.exe`.
+3. Descompacte o arquivo `.zip` e clique duas vezes em `AegisCore.exe` para começar a usar imediatamente!
 
-### 2. Pelo Executável em Lote
-Basta dar um duplo clique no arquivo [`iniciar_aegiscore.bat`](./iniciar_aegiscore.bat).
+### 💻 Para Desenvolvedores (A partir do código-fonte)
 
-### 3. Pelo Terminal
+#### 1. Atalho ou Arquivo em Lote
+- Duplo clique em [`iniciar_aegiscore.bat`](./iniciar_aegiscore.bat) para iniciar em segundo plano.
+
+#### 2. Pelo Terminal
 ```powershell
 python app.py
 ```
 *(Ou de forma silenciosa sem console: `pythonw app.py`)*
+
+#### 3. Gerando o Executável (.exe) e o Pacote Portátil (.zip)
+Execute o script de compilação automática:
+```powershell
+.\build.bat
+```
+Os binários prontos para distribuição serão gerados na pasta `dist/`.
 
 ---
 
@@ -77,3 +95,14 @@ Instalação rápida:
 ```bash
 pip install -r requirements.txt
 ```
+
+---
+
+## ⚖️ Código Aberto & Licença
+
+O **AegisCore** é um projeto de código aberto sob a licença [MIT](./LICENSE).
+
+Acreditamos que softwares de segurança e gerenciamento de senhas devem ser **100% transparentes, auditáveis e livres de código proprietário obscuro**. Qualquer pessoa ou pesquisador de segurança pode inspecionar, auditar e contribuir com o código-fonte.
+
+Copyright (c) 2026 Matheus Ventura.
+

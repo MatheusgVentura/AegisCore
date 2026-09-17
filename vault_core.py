@@ -5,12 +5,41 @@ import uuid
 import secrets
 import string
 import shutil
+import sys
 from datetime import datetime
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def get_data_dir() -> str:
+    """
+    Retorna o diretório de persistência dos dados do cofre.
+    - Se existir 'vault.enc' no diretório do app ou for executável portátil com permissão de escrita local,
+      utiliza o diretório do app.
+    - Caso esteja em um diretório protegido do sistema (ex: Program Files), utiliza %APPDATA%/AegisCore.
+    """
+    if getattr(sys, "frozen", False):
+        app_dir = os.path.dirname(sys.executable)
+    else:
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+
+    is_prog_files = "program files" in app_dir.lower()
+    local_vault = os.path.join(app_dir, "vault.enc")
+
+    if os.path.exists(local_vault):
+        return app_dir
+
+    if not is_prog_files and os.access(app_dir, os.W_OK):
+        return app_dir
+
+    appdata = os.environ.get("APPDATA") or os.path.expanduser("~")
+    vault_dir = os.path.join(appdata, "AegisCore")
+    os.makedirs(vault_dir, exist_ok=True)
+    return vault_dir
+
+
+BASE_DIR = get_data_dir()
 VAULT_FILE = os.path.join(BASE_DIR, "vault.enc")
 BACKUP_FILE = os.path.join(BASE_DIR, "vault.enc.bak")
 

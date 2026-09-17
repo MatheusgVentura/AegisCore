@@ -254,6 +254,12 @@ class VaultApi:
         return {"success": True, "timeout": 15}
 
 
+def get_resource_path(relative_path: str) -> str:
+    """Obtém o caminho absoluto para recursos, funcionando em dev e empacotado pelo PyInstaller."""
+    base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
+
+
 def main():
     if sys.platform == "win32":
         try:
@@ -262,9 +268,8 @@ def main():
         except Exception:
             pass
 
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    ui_index = os.path.join(base_dir, "ui", "index.html")
-    icon_path = os.path.join(base_dir, "aegiscore.ico")
+    ui_index = get_resource_path(os.path.join("ui", "index.html"))
+    icon_path = get_resource_path("aegiscore.ico")
 
     api = VaultApi()
 
