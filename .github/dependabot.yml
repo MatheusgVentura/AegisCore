@@ -1,0 +1,27 @@
+version: 2
+updates:
+  # Monitoramento automatizado de dependências Python (requirements.txt)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "MatheusgVentura"
+    assignees:
+      - "MatheusgVentura"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # Monitoramento de ações do GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "MatheusgVentura"
+    assignees:
+      - "MatheusgVentura"
+    commit-message:
+      prefix: "chore(ci)"
