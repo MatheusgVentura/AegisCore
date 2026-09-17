@@ -1,0 +1,30 @@
+# Byte-compiled / cache do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Arquivos temporários e backups locais
+*.tmp
+*.bak
+
+# Cofre pessoal criptografado (segurança: não subir para o GitHub)
+vault.enc
+vault.enc.bak
+
+# Ambientes virtuais
+.venv/
+venv/
+env/
+
+# Configurações de IDEs
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Logs do sistema operacional
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store

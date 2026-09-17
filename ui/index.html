@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AegisCore</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Sidebar AegisCore -->
+  <aside id="app-sidebar" style="display: none;">
+    <div class="sidebar-top">
+      
+      <!-- Brand AegisCore com o Escudo da Medusa -->
+      <div class="aegis-brand">
+        <img src="logo.png" class="aegis-logo-img" alt="AegisCore">
+        <div class="aegis-brand-text">
+          <div class="aegis-title">AegisCore</div>
+          <div class="aegis-subtitle">Vault Engine</div>
+        </div>
+      </div>
+
+      <!-- Navegação Principal -->
+      <div class="nav-section">
+        <div class="nav-section-title">Navegação</div>
+        <div class="nav-item active" data-category="all">
+          <div class="nav-item-left">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            <span>Todas as credenciais</span>
+          </div>
+          <span class="nav-badge" id="nav-count-total">0</span>
+        </div>
+        <div class="nav-item" data-category="favorites">
+          <div class="nav-item-left">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            <span>Favoritos</span>
+          </div>
+          <span class="nav-badge" id="nav-count-fav">0</span>
+        </div>
+      </div>
+
+
+
+    </div>
+
+    <!-- Rodapé da Sidebar -->
+    <div class="sidebar-bottom">
+      <div class="nav-item" id="btn-sidebar-gen">
+        <div class="nav-item-left">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><circle cx="15.5" cy="8.5" r="1.5"/><circle cx="15.5" cy="15.5" r="1.5"/><circle cx="8.5" cy="15.5" r="1.5"/>
+          </svg>
+          <span>Gerador de senhas</span>
+        </div>
+      </div>
+      <div class="nav-item" id="btn-sidebar-lock" style="color: var(--accent-red);">
+        <div class="nav-item-left">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <span>Bloquear cofre</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Área Principal -->
+  <div class="app-content">
+
+    <!-- Telas de Autenticação (Overlay) -->
+    <div class="auth-overlay" id="auth-view">
+      
+      <!-- Painel de Desbloqueio -->
+      <div class="auth-panel" id="panel-unlock">
+        <img src="logo.png" class="auth-panel-logo" alt="AegisCore">
+        <div class="auth-title">AegisCore</div>
+        <div class="auth-subtitle">Insira sua senha mestra para descriptografar o cofre.</div>
+
+        <form id="unlock-form" onsubmit="return false;">
+          <div class="form-field">
+            <label class="field-label">Senha Mestra do Cofre</label>
+            <div class="field-input-box">
+              <input type="password" id="input-unlock-pass" class="input-styled" placeholder="Digite sua senha mestra..." autofocus autocomplete="off">
+              <button type="button" class="btn-icon-btn" id="btn-toggle-unlock-pass" style="position: absolute; right: 6px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 11px;" id="btn-submit-unlock">
+            Desbloquear Cofre
+          </button>
+        </form>
+        <div class="auth-error-box" id="unlock-error"></div>
+      </div>
+
+      <!-- Painel de Inicialização -->
+      <div class="auth-panel" id="panel-setup" style="display: none;">
+        <img src="logo.png" class="auth-panel-logo" alt="AegisCore">
+        <div class="auth-title">Inicializar AegisCore</div>
+        <div class="auth-subtitle">Defina uma senha mestra forte para selar seu cofre no disco.</div>
+
+        <form id="setup-form" onsubmit="return false;">
+          <div class="form-field">
+            <label class="field-label">Definir Senha Mestra</label>
+            <input type="password" id="input-setup-pass" class="input-styled" placeholder="Escolha uma senha forte..." autocomplete="off">
+            <div class="entropy-track" style="margin-top: 6px;">
+              <div class="entropy-fill" id="setup-meter-fill"></div>
+            </div>
+            <div class="entropy-caption">
+              <span id="setup-meter-label">Entropia: N/A</span>
+              <span id="setup-meter-bits">0 bits</span>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label">Confirmar Senha Mestra</label>
+            <input type="password" id="input-setup-confirm" class="input-styled" placeholder="Repita a senha mestra..." autocomplete="off">
+          </div>
+
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 11px;" id="btn-submit-setup">
+            Criar Cofre Seguro
+          </button>
+        </form>
+        <div class="auth-error-box" id="setup-error"></div>
+      </div>
+
+    </div>
+
+    <!-- Dashboard Principal -->
+    <div id="dashboard-wrapper" style="display: none; height: 100%; display: flex; flex-direction: column;">
+      
+      <!-- Toolbar Superior -->
+      <div class="top-toolbar">
+        <div class="search-container">
+          <svg class="search-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" id="input-search" class="search-input" placeholder="Buscar credenciais, serviços ou notas...">
+          <span class="search-shortcut">Ctrl K</span>
+        </div>
+
+        <div class="toolbar-actions">
+          <button class="btn-primary" id="btn-add-credential">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nova credencial
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de Filtros -->
+      <div class="filter-bar">
+        <div class="filter-pill active" data-filter="all">Todas as credenciais</div>
+        <div class="filter-pill" data-filter="favorites">Favoritos</div>
+      </div>
+
+      <!-- Viewport de Cards -->
+      <div class="main-viewport">
+        <div class="cards-grid" id="cards-container">
+          <!-- Renderizado via JavaScript -->
+        </div>
+
+        <!-- Estado Vazio -->
+        <div class="empty-state" id="empty-state" style="display: none;">
+          <img src="logo.png" class="empty-logo" alt="AegisCore">
+          <div class="empty-title">Nenhuma credencial encontrada</div>
+          <div class="empty-desc">Adicione sua primeira credencial ao AegisCore para mantê-la protegida localmente.</div>
+          <button class="btn-secondary" id="btn-empty-add">Adicionar credencial</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Modal: Nova / Editar Credencial -->
+  <div class="modal-backdrop" id="modal-entry">
+    <div class="modal-content">
+      <div class="modal-header-row">
+        <div class="modal-heading" id="modal-entry-title">Nova credencial</div>
+        <button class="btn-icon-btn" id="btn-close-entry-modal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <form id="entry-form" onsubmit="return false;">
+        <input type="hidden" id="entry-id">
+
+        <div class="form-field">
+          <label class="field-label">Serviço ou plataforma</label>
+          <input type="text" id="entry-service" class="input-styled" placeholder="ex: Google, GitHub, Microsoft Azure, AWS..." required>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">Usuário ou e-mail</label>
+          <input type="text" id="entry-username" class="input-styled" placeholder="ex: usuario@empresa.com">
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">Website / URL de Login (opcional)</label>
+          <input type="text" id="entry-url" class="input-styled" placeholder="ex: https://mail.google.com ou hackerone.com">
+        </div>
+
+        <div class="form-field">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="field-label" style="margin-bottom: 0;">Senha</label>
+            <button type="button" class="btn-ghost" id="btn-modal-quick-gen" style="padding: 2px 6px; font-size: 11px; color: var(--gold-primary);">
+              Gerar senha forte
+            </button>
+          </div>
+          <div class="field-input-box">
+            <input type="password" id="entry-password" class="input-styled" placeholder="Digite ou gere a senha..." required>
+            <button type="button" class="btn-icon-btn" id="btn-toggle-entry-pass" style="position: absolute; right: 6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="entropy-track">
+            <div class="entropy-fill" id="entry-meter-fill"></div>
+          </div>
+          <div class="entropy-caption">
+            <span id="entry-meter-label">Força: N/A</span>
+            <span id="entry-meter-bits">0 bits</span>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">Notas ou observações adicionais</label>
+          <input type="text" id="entry-notes" class="input-styled" placeholder="ex: Chave de segurança, PIN, servidor...">
+        </div>
+
+        <div class="modal-actions-row">
+          <button type="button" class="btn-ghost" id="btn-cancel-entry">Cancelar</button>
+          <button type="submit" class="btn-primary" id="btn-save-entry">Salvar no AegisCore</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Gerador de Senhas -->
+  <div class="modal-backdrop" id="modal-gen">
+    <div class="modal-content">
+      <div class="modal-header-row">
+        <div class="modal-heading">Gerador de senhas</div>
+        <button class="btn-icon-btn" id="btn-close-gen-modal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="form-field">
+        <div class="field-input-box">
+          <input type="text" id="gen-display" class="input-styled" style="font-family: var(--font-mono); font-size: 14px; letter-spacing: 0.5px; color: var(--gold-sand);" readonly>
+          <button type="button" class="btn-icon-btn" id="btn-copy-generated" style="position: absolute; right: 6px;" title="Copiar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="gen-controls-box">
+        <div class="slider-row">
+          <span style="font-size: 12px; color: var(--text-secondary);">Comprimento: <strong id="gen-length-val" style="color: var(--gold-primary);">24</strong></span>
+          <input type="range" id="gen-slider" min="8" max="64" value="24" style="width: 55%;">
+        </div>
+
+        <div class="checkboxes-grid">
+          <label class="checkbox-label">
+            <input type="checkbox" id="gen-upper" checked> Maiúsculas (A-Z)
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="gen-lower" checked> Minúsculas (a-z)
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="gen-digits" checked> Números (0-9)
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="gen-symbols" checked> Símbolos (!@#$)
+          </label>
+        </div>
+      </div>
+
+      <div class="entropy-track" style="margin-bottom: 4px;">
+        <div class="entropy-fill" id="gen-meter-fill" style="width: 100%; background: var(--gold-primary);"></div>
+      </div>
+      <div class="entropy-caption" style="margin-bottom: 20px;">
+        <span id="gen-meter-label" style="color: var(--gold-primary);">Entropia: Impenetrável</span>
+        <span id="gen-meter-bits">157 bits</span>
+      </div>
+
+      <div class="modal-actions-row">
+        <button type="button" class="btn-secondary" id="btn-regen">Nova senha</button>
+        <button type="button" class="btn-primary" id="btn-use-generated">Copiar senha</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Exclusão -->
+  <div class="modal-backdrop" id="modal-delete">
+    <div class="modal-content" style="width: 380px;">
+      <div class="modal-header-row">
+        <div class="modal-heading">Excluir credencial</div>
+      </div>
+      <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
+        Tem certeza que deseja apagar a credencial de <strong id="delete-service-name" style="color: var(--text-primary);"></strong> do AegisCore?
+      </p>
+      <div class="modal-actions-row">
+        <button type="button" class="btn-ghost" id="btn-cancel-delete">Cancelar</button>
+        <button type="button" class="btn-secondary" style="background: var(--accent-red-dim); color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3);" id="btn-confirm-delete">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notificação -->
+  <div class="toast-badge" id="clipboard-toast">
+    <div class="toast-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+    </div>
+    <div class="toast-text" id="toast-message">Senha copiada com segurança</div>
+    <div class="toast-countdown" id="toast-timer">15s</div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
