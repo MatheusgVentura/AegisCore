@@ -15,27 +15,37 @@ from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
 def get_data_dir() -> str:
     """
     Retorna o diretório de persistência dos dados do cofre.
-    - Se existir 'vault.enc' no diretório do app ou for executável portátil com permissão de escrita local,
-      utiliza o diretório do app.
-    - Caso esteja em um diretório protegido do sistema (ex: Program Files), utiliza %APPDATA%/AegisCore.
+    Prioridades:
+    1. Se houver um arquivo 'portable.dat' na pasta do executável, força modo 100% portátil local.
+    2. Utiliza %APPDATA%/AegisCore como padrão seguro no Windows (evita perdas em rebuilds ou limpezas).
+    3. Se ainda não houver cofre no APPDATA mas houver na pasta do app, migra/copia automaticamente.
     """
     if getattr(sys, "frozen", False):
         app_dir = os.path.dirname(sys.executable)
     else:
         app_dir = os.path.dirname(os.path.abspath(__file__))
 
-    is_prog_files = "program files" in app_dir.lower()
-    local_vault = os.path.join(app_dir, "vault.enc")
-
-    if os.path.exists(local_vault):
-        return app_dir
-
-    if not is_prog_files and os.access(app_dir, os.W_OK):
+    # Modo portátil explícito (ex: pendrive ou pasta isolada)
+    if os.path.exists(os.path.join(app_dir, "portable.dat")):
         return app_dir
 
     appdata = os.environ.get("APPDATA") or os.path.expanduser("~")
     vault_dir = os.path.join(appdata, "AegisCore")
     os.makedirs(vault_dir, exist_ok=True)
+
+    appdata_vault = os.path.join(vault_dir, "vault.enc")
+    local_vault = os.path.join(app_dir, "vault.enc")
+
+    # Migração automática e transparente de cofre legado local se ainda não existir no APPDATA
+    if not os.path.exists(appdata_vault) and os.path.exists(local_vault):
+        try:
+            shutil.copy2(local_vault, appdata_vault)
+            bak = os.path.join(app_dir, "vault.enc.bak")
+            if os.path.exists(bak):
+                shutil.copy2(bak, os.path.join(vault_dir, "vault.enc.bak"))
+        except Exception:
+            return app_dir
+
     return vault_dir
 
 
