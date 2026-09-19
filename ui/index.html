@@ -6,7 +6,8 @@
   <title>AegisCore</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Michroma&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,7 +16,7 @@
   <aside id="app-sidebar" style="display: none;">
     <div class="sidebar-top">
       
-      <!-- Brand AegisCore com o Escudo da Medusa -->
+      <!-- Brand AegisCore com o Escudo Geométrico -->
       <div class="aegis-brand">
         <img src="logo.png" class="aegis-logo-img" alt="AegisCore">
         <div class="aegis-brand-text">
@@ -45,9 +46,30 @@
           </div>
           <span class="nav-badge" id="nav-count-fav">0</span>
         </div>
+        <div class="nav-item" data-category="totp">
+          <div class="nav-item-left">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
+            </svg>
+            <span>Tokens 2FA / TOTP</span>
+          </div>
+          <span class="nav-badge" id="nav-count-totp">0</span>
+        </div>
       </div>
 
-
+      <!-- Seção Tática -->
+      <div class="nav-section">
+        <div class="nav-section-title">Segurança Tática</div>
+        <div class="nav-item" id="btn-sidebar-health">
+          <div class="nav-item-left">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span style="color: var(--gold-sand); font-weight: 600;">Saúde do Cofre</span>
+          </div>
+          <span class="nav-badge health-badge" id="nav-health-score">100%</span>
+        </div>
+      </div>
 
     </div>
 
@@ -59,6 +81,14 @@
             <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><circle cx="15.5" cy="8.5" r="1.5"/><circle cx="15.5" cy="15.5" r="1.5"/><circle cx="8.5" cy="15.5" r="1.5"/>
           </svg>
           <span>Gerador de senhas</span>
+        </div>
+      </div>
+      <div class="nav-item" id="btn-sidebar-io">
+        <div class="nav-item-left">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>Importar / Exportar</span>
         </div>
       </div>
       <div class="nav-item" id="btn-sidebar-lock" style="color: var(--accent-red);">
@@ -135,44 +165,173 @@
     </div>
 
     <!-- Dashboard Principal -->
-    <div id="dashboard-wrapper" style="display: none; height: 100%; display: flex; flex-direction: column;">
+    <div id="dashboard-wrapper" style="display: none; height: 100%; width: 100%; flex-direction: column;">
       
-      <!-- Toolbar Superior -->
-      <div class="top-toolbar">
-        <div class="search-container">
-          <svg class="search-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input type="text" id="input-search" class="search-input" placeholder="Buscar credenciais, serviços ou notas...">
-          <span class="search-shortcut">Ctrl K</span>
+      <!-- Visão 1: Gerenciador de Credenciais -->
+      <div id="view-credentials" class="app-view-panel">
+        <!-- Toolbar Superior -->
+        <div class="top-toolbar">
+          <div class="search-container">
+            <svg class="search-icon-left" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="input-search" class="search-input" placeholder="Buscar credenciais, serviços ou notas...">
+            <span class="search-shortcut">Ctrl K</span>
+          </div>
+
+          <div class="toolbar-actions">
+            <button class="btn-primary" id="btn-add-credential">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nova credencial
+            </button>
+          </div>
         </div>
 
-        <div class="toolbar-actions">
-          <button class="btn-primary" id="btn-add-credential">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Nova credencial
+        <!-- Barra de Filtros (Tópicos) -->
+        <div class="filter-bar">
+          <div class="filter-pill active" data-filter="all">
+            <span>Todas as credenciais</span>
+          </div>
+          <div class="filter-pill" data-filter="favorites">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            <span>Favoritos</span>
+          </div>
+          <div class="filter-pill" data-filter="totp">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="7.5" cy="15.5" r="4.5"/>
+              <path d="m11 12 8.5-8.5M16 7l2 2M18 5l2 2"/>
+            </svg>
+            <span>Com 2FA / TOTP</span>
+          </div>
+          <div class="filter-pill" data-filter="weak">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e5a962" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <span>Senhas vulneráveis</span>
+          </div>
+          <div class="filter-pill" data-filter="reused">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+              <path d="M21 3v5h-5"/>
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+              <path d="M3 21v-5h5"/>
+            </svg>
+            <span>Senhas reutilizadas</span>
+          </div>
+          <div class="filter-pill" data-filter="sem_totp">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span>Sem 2FA</span>
+          </div>
+        </div>
+
+        <!-- Viewport de Cards -->
+        <div class="main-viewport">
+          <div class="cards-grid" id="cards-container">
+            <!-- Renderizado via JavaScript -->
+          </div>
+
+          <!-- Estado Vazio -->
+          <div class="empty-state" id="empty-state" style="display: none;">
+            <img src="logo.png" class="empty-logo" alt="AegisCore">
+            <div class="empty-title">Nenhuma credencial encontrada</div>
+            <div class="empty-desc">Adicione sua primeira credencial ao AegisCore para mantê-la protegida localmente.</div>
+            <button class="btn-secondary" id="btn-empty-add">Adicionar credencial</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Visão 2: Dashboard de Auditoria & Saúde do Cofre -->
+      <div id="view-health" class="app-view-panel" style="display: none;">
+        <!-- Cabeçalho do Dashboard de Saúde -->
+        <div class="health-header-row">
+          <div class="health-header-left">
+            <div class="health-main-title">Auditoria & Saúde do Cofre</div>
+            <div class="health-main-subtitle">Análise contínua de entropia criptográfica, reutilização de credenciais e cobertura multifator (2FA).</div>
+          </div>
+          <button type="button" class="btn-secondary" id="btn-back-to-credentials">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+            Voltar às credenciais
           </button>
         </div>
-      </div>
 
-      <!-- Barra de Filtros -->
-      <div class="filter-bar">
-        <div class="filter-pill active" data-filter="all">Todas as credenciais</div>
-        <div class="filter-pill" data-filter="favorites">Favoritos</div>
-      </div>
+        <!-- Conteúdo Rolável do Dashboard de Saúde -->
+        <div class="health-dashboard-scroll">
+          
+          <!-- Card de Pontuação Executiva -->
+          <div class="health-score-card">
+            <div class="health-score-circle" id="health-circle-bg">
+              <span id="health-score-val">100</span>
+              <span class="health-score-label">/ 100</span>
+            </div>
+            <div class="health-score-info">
+              <div class="health-score-title" id="health-score-title">Status: Excelente (Alta Resiliência)</div>
+              <div class="health-score-desc" id="health-score-desc">Seu cofre apresenta alta resiliência criptográfica, baixa superfície de ataque e boa cobertura de autenticação multifator.</div>
+            </div>
+          </div>
 
-      <!-- Viewport de Cards -->
-      <div class="main-viewport">
-        <div class="cards-grid" id="cards-container">
-          <!-- Renderizado via JavaScript -->
-        </div>
+          <!-- Grid de Métricas (4 caixas uniformes) -->
+          <div class="health-metrics-grid">
+            <div class="health-metric-box" id="card-metric-strong" title="Clique para filtrar senhas fortes">
+              <div class="health-metric-top">
+                <span class="health-metric-icon" style="color: var(--accent-green);">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </span>
+                <span class="health-metric-val" id="health-metric-strong-ratio">0 / 0</span>
+              </div>
+              <div class="health-metric-label">Senhas Fortes</div>
+              <div class="health-metric-detail">Alta entropia (&ge; 60 bits)</div>
+            </div>
 
-        <!-- Estado Vazio -->
-        <div class="empty-state" id="empty-state" style="display: none;">
-          <img src="logo.png" class="empty-logo" alt="AegisCore">
-          <div class="empty-title">Nenhuma credencial encontrada</div>
-          <div class="empty-desc">Adicione sua primeira credencial ao AegisCore para mantê-la protegida localmente.</div>
-          <button class="btn-secondary" id="btn-empty-add">Adicionar credencial</button>
+            <div class="health-metric-box" id="card-metric-totp" title="Clique para filtrar contas com 2FA ativo">
+              <div class="health-metric-top">
+                <span class="health-metric-icon" style="color: #06b6d4;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                </span>
+                <span class="health-metric-val" id="health-metric-totp-ratio">0 / 0</span>
+              </div>
+              <div class="health-metric-label">Adoção de 2FA</div>
+              <div class="health-metric-detail">Protegidas por token TOTP</div>
+            </div>
+
+            <div class="health-metric-box" id="card-metric-weak" title="Clique para filtrar senhas vulneráveis">
+              <div class="health-metric-top">
+                <span class="health-metric-icon" style="color: var(--accent-red);">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </span>
+                <span class="health-metric-val" id="health-metric-weak-ratio">0 / 0</span>
+              </div>
+              <div class="health-metric-label">Senhas Vulneráveis</div>
+              <div class="health-metric-detail">Baixa entropia (&lt; 60 bits)</div>
+            </div>
+
+            <div class="health-metric-box" id="card-metric-reused" title="Clique para filtrar senhas reutilizadas">
+              <div class="health-metric-top">
+                <span class="health-metric-icon" style="color: #f59e0b;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                </span>
+                <span class="health-metric-val" id="health-metric-reused-ratio">0 / 0</span>
+              </div>
+              <div class="health-metric-label">Senhas Reutilizadas</div>
+              <div class="health-metric-detail">Compartilhadas entre contas</div>
+            </div>
+          </div>
+
+          <!-- Seção de Ações & Recomendações Corretivas -->
+          <div class="health-actions-section">
+            <div class="health-actions-heading">Diagnóstico de Segurança & Ações Recomendadas</div>
+            <div class="health-actions-list" id="health-actions-list">
+              <!-- Renderizado dinamicamente via JS -->
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -228,6 +387,19 @@
             <span id="entry-meter-label">Força: N/A</span>
             <span id="entry-meter-bits">0 bits</span>
           </div>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Chave Secreta 2FA / TOTP (opcional)</span>
+            <span style="font-size: 10px; color: var(--gold-primary); text-transform: uppercase; letter-spacing: 0.5px;">Autenticador 6 Dígitos</span>
+          </label>
+          <div class="field-input-box">
+            <input type="text" id="entry-totp" class="input-styled" style="font-family: var(--font-mono); font-size: 13px;" placeholder="ex: JBSWY3DPEHPK3PXP ou otpauth://totp/..." autocomplete="off">
+          </div>
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">
+            Cole o segredo Base32 ou URL otpauth para gerar códigos temporários automáticos de 30 segundos.
+          </span>
         </div>
 
         <div class="form-field">
@@ -312,6 +484,71 @@
         <button type="button" class="btn-ghost" id="btn-cancel-delete">Cancelar</button>
         <button type="button" class="btn-secondary" style="background: var(--accent-red-dim); color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3);" id="btn-confirm-delete">Excluir</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal: Importar e Exportar Credenciais -->
+  <div class="modal-backdrop" id="modal-io">
+    <div class="modal-content" style="max-width: 540px; width: 92%;">
+      <div class="modal-header-row">
+        <div class="modal-heading" style="display: flex; align-items: center; gap: 8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Importar & Exportar
+        </div>
+        <button class="btn-icon-btn" id="btn-close-io-modal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Abas Internas -->
+      <div class="io-tabs">
+        <button type="button" class="io-tab active" id="tab-btn-import">Importar CSV</button>
+        <button type="button" class="io-tab" id="tab-btn-export">Exportar Backup</button>
+      </div>
+
+      <!-- Seção Importar -->
+      <div id="io-section-import">
+        <div class="io-info-banner">
+          Suporte automático a arquivos <strong>.CSV</strong> exportados de <strong>Google Chrome, Edge, Brave, Bitwarden e KeePassXC</strong>.
+        </div>
+
+        <div class="dropzone" id="csv-dropzone">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" stroke-width="1.8" style="margin-bottom: 8px;">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/>
+            <polyline points="9 15 12 12 15 15"/>
+          </svg>
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Arraste e solte seu arquivo CSV aqui</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">ou utilize o botão abaixo para selecionar</div>
+          <button type="button" class="btn-secondary" id="btn-browse-csv">Procurar arquivo CSV</button>
+          <input type="file" id="file-input-csv" accept=".csv,text/csv" style="display: none;">
+        </div>
+
+        <div id="import-status" style="margin-top: 14px; display: none;" class="auth-error-box"></div>
+      </div>
+
+      <!-- Seção Exportar -->
+      <div id="io-section-export" style="display: none;">
+        <div class="io-warning-banner" style="display: flex; align-items: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div><strong>Atenção de Segurança:</strong> A exportação em CSV gera um arquivo descriptografado em texto plano. Guarde-o em local seguro ou pendrive cifrado.</div>
+        </div>
+
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 16px; margin-top: 14px;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Backup Completo do Cofre</div>
+          <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+            Exporta todos os serviços, usuários, senhas, anotações e chaves 2FA/TOTP em formato universal compatível com qualquer software de senhas.
+          </div>
+          <button type="button" class="btn-primary" style="width: 100%; justify-content: center;" id="btn-export-csv-action">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Salvar Arquivo CSV no Computador
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 

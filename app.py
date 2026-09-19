@@ -27,6 +27,11 @@ class VaultApi:
         self._salt: bytes = b""
         self._clipboard_timer: threading.Timer | None = None
         self._last_copied_sensitive: str = ""
+        self._window = None
+
+    def set_window(self, window):
+        """Define a referência para a janela ativa do pywebview para diálogos do sistema."""
+        self._window = window
 
     def check_vault_status(self) -> dict:
         """Verifica se o cofre local já foi criado no disco."""
@@ -87,14 +92,17 @@ class VaultApi:
             return {"success": False, "error": "Cofre bloqueado."}
 
         entry_id = entry_data.get("id")
-        servico = entry_data.get("servico", "").strip()
-        usuario = entry_data.get("usuario", "").strip()
-        senha = entry_data.get("senha", "")
-        url = entry_data.get("url", "").strip()
-        notas = entry_data.get("notas", "").strip()
+        servico = str(entry_data.get("servico") or "").strip()
+        usuario = str(entry_data.get("usuario") or "").strip()
+        senha = str(entry_data.get("senha") or "")
+        url = str(entry_data.get("url") or "").strip()
+        notas = str(entry_data.get("notas") or "").strip()
+        totp_secret = str(entry_data.get("totp_secret") or "").strip()
 
         if not servico or not senha:
             return {"success": False, "error": "Serviço e Senha são obrigatórios."}
+
+        agora = datetime.now().strftime("%d/%m/%Y %H:%M")
 
         if entry_id:
             # Atualização de registro existente
@@ -106,9 +114,10 @@ class VaultApi:
                     item["senha"] = senha
                     item["url"] = url
                     item["notas"] = notas
+                    item["totp_secret"] = totp_secret
                     if "favorito" in entry_data:
                         item["favorito"] = bool(entry_data["favorito"])
-                    item["atualizado_em"] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                    item["atualizado_em"] = agora
                     encontrado = True
                     break
             if not encontrado:
@@ -122,8 +131,10 @@ class VaultApi:
                 "senha": senha,
                 "url": url,
                 "notas": notas,
+                "totp_secret": totp_secret,
                 "favorito": bool(entry_data.get("favorito", False)),
-                "criado_em": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                "criado_em": agora,
+                "atualizado_em": agora,
             }
             self._cofre.append(novo)
 
@@ -253,6 +264,120 @@ class VaultApi:
 
         return {"success": True, "timeout": 15}
 
+    def get_totp_token(self, secret: str) -> dict:
+        """Gera código TOTP para um segredo individual."""
+        return vault_core.gerar_totp(secret)
+
+    def get_vault_totp_tokens(self) -> dict:
+        """Retorna os códigos TOTP ativos de todos os registros que possuem chave 2FA configurada."""
+        tokens = {}
+        for item in self._cofre:
+            sec = str(item.get("totp_secret") or "").strip()
+            if sec:
+                tokens[item["id"]] = vault_core.gerar_totp(sec)
+        return tokens
+
+    def get_vault_health(self) -> dict:
+        """Executa a auditoria de saúde e cálculo de pontuação do cofre."""
+        try:
+            return vault_core.analisar_saude_cofre(self._cofre)
+        except Exception as e:
+            return {
+                "score": 100,
+                "total": len(self._cofre) if self._cofre else 0,
+                "fracas_count": 0,
+                "fracas_ids": [],
+                "reutilizadas_count": 0,
+                "reutilizadas_ids": [],
+                "com_totp_count": 0,
+                "com_totp_ids": [],
+                "sem_totp_count": 0,
+                "sem_totp_ids": [],
+                "fortes_count": 0,
+                "fortes_ids": [],
+                "status_seguranca": "Status: Indisponível",
+                "nivel_blindagem": "Status: Indisponível",
+                "cor_status": "#f43f5e",
+                "cor_blindagem": "#f43f5e",
+                "resumo": "Não foi possível concluir a auditoria no momento.",
+                "error": str(e),
+            }
+
+    def import_csv_data(self, csv_text: str) -> dict:
+        """Importa credenciais a partir de uma string CSV e persiste atomicamente."""
+        if not self._chave:
+            return {"success": False, "error": "Cofre bloqueado."}
+
+        novos_itens, count = vault_core.importar_csv(csv_text)
+        if count == 0:
+            return {"success": False, "error": "Nenhuma credencial válida encontrada no arquivo CSV."}
+
+        self._cofre.extend(novos_itens)
+        try:
+            vault_core.salvar_cofre(self._cofre, self._chave, self._salt)
+            return {"success": True, "count": count, "entries": self._cofre}
+        except Exception as e:
+            return {"success": False, "error": f"Falha ao persistir dados importados: {str(e)}"}
+
+    def export_csv_data(self) -> dict:
+        """Exporta o cofre atual em formato CSV RFC 4180."""
+        if not self._chave:
+            return {"success": False, "error": "Cofre bloqueado."}
+        try:
+            csv_content = vault_core.exportar_csv(self._cofre)
+            return {"success": True, "csv_content": csv_content, "count": len(self._cofre)}
+        except Exception as e:
+            return {"success": False, "error": f"Erro ao exportar CSV: {str(e)}"}
+
+    def select_and_import_csv(self) -> dict:
+        """Abre o diálogo nativo do Windows para selecionar e importar arquivo CSV."""
+        if not self._chave:
+            return {"success": False, "error": "Cofre bloqueado."}
+        if not self._window:
+            return {"success": False, "error": "Janela indisponível."}
+
+        file_types = ("Arquivos CSV (*.csv)", "Todos os arquivos (*.*)")
+        try:
+            result = self._window.create_file_dialog(
+                webview.OPEN_DIALOG,
+                allow_multiple=False,
+                file_types=file_types,
+            )
+            if not result:
+                return {"cancelled": True}
+            file_path = result[0] if isinstance(result, (list, tuple)) else result
+            with open(file_path, "r", encoding="utf-8-sig", errors="replace") as f:
+                content = f.read()
+            return self.import_csv_data(content)
+        except Exception as e:
+            return {"success": False, "error": f"Falha ao abrir arquivo: {str(e)}"}
+
+    def export_csv_to_file(self) -> dict:
+        """Abre o diálogo nativo do Windows para salvar o arquivo de backup CSV."""
+        if not self._chave:
+            return {"success": False, "error": "Cofre bloqueado."}
+        if not self._window:
+            return {"success": False, "error": "Janela indisponível."}
+
+        default_name = f"AegisCore-Backup-{datetime.now().strftime('%Y%m%d-%H%M%S')}.csv"
+        file_types = ("Arquivos CSV (*.csv)", "Todos os arquivos (*.*)")
+        try:
+            save_path = self._window.create_file_dialog(
+                webview.SAVE_DIALOG,
+                save_filename=default_name,
+                file_types=file_types,
+            )
+            if not save_path:
+                return {"cancelled": True}
+            if isinstance(save_path, (list, tuple)):
+                save_path = save_path[0]
+            csv_str = vault_core.exportar_csv(self._cofre)
+            with open(save_path, "w", encoding="utf-8", newline="") as f:
+                f.write(csv_str)
+            return {"success": True, "path": save_path, "count": len(self._cofre)}
+        except Exception as e:
+            return {"success": False, "error": f"Erro ao salvar arquivo: {str(e)}"}
+
 
 def get_resource_path(relative_path: str) -> str:
     """Obtém o caminho absoluto para recursos, funcionando em dev e empacotado pelo PyInstaller."""
@@ -264,7 +389,7 @@ def main():
     if sys.platform == "win32":
         try:
             import ctypes
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("aegiscore.vault.app.1.0")
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("aegiscore.vault.app.1.1")
         except Exception:
             pass
 
@@ -273,7 +398,7 @@ def main():
 
     api = VaultApi()
 
-    webview.create_window(
+    window = webview.create_window(
         title="AegisCore",
         url=ui_index,
         js_api=api,
@@ -283,6 +408,7 @@ def main():
         background_color="#0c0b08",
         text_select=False,
     )
+    api.set_window(window)
 
     webview.start(debug=False, icon=icon_path if os.path.exists(icon_path) else None)
 
