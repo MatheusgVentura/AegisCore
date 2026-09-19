@@ -1,31 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('fonts/fonts.css');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Michroma&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap');
 
 :root {
   /* Paleta AegisCore - Deserto Dourado & Bronze Imperial */
-  --bg-app: #0c0b08;
-  --bg-sidebar: #12100c;
-  --bg-card: #17140e;
-  --bg-card-hover: #1e1a12;
-  --bg-input: #13100a;
-  --bg-pill: #1c170f;
-  --bg-pill-active: #2b2214;
-  --border-subtle: #241d13;
-  --border-card: #2a2216;
-  --border-card-hover: #4d3d22;
+  --bg-app: #0c0a07;
+  --bg-sidebar: #100e0b;
+  --bg-card: #15120c;
+  --bg-card-hover: #1c1810;
+  --bg-input: #110f0a;
+  --bg-pill: #19150d;
+  --bg-pill-active: #241d11;
+  --border-subtle: #201a11;
+  --border-card: #262014;
+  --border-card-hover: #44351c;
   
-  /* Cores Dourado & Areia */
-  --gold-primary: #d4af37;
-  --gold-hover: #e6be44;
-  --gold-sand: #e8cf78;
-  --gold-light: #fef08a;
-  --gold-bronze: #8c7036;
-  --gold-dim: rgba(212, 175, 55, 0.12);
-  --gold-glow: rgba(212, 175, 55, 0.25);
+  /* Paleta AegisCore — Bronze Imperial Tático & Areia Metálica */
+  --gold-primary: #b89153;
+  --gold-hover: #c7a264;
+  --gold-sand: #cfbc9c;
+  --gold-light: #ece1cd;
+  --gold-bronze: #73572d;
+  --gold-dim: rgba(184, 145, 83, 0.12);
+  --gold-glow: rgba(184, 145, 83, 0.25);
   
-  --text-primary: #fcfaf6;
-  --text-secondary: #c9baa2;
-  --text-muted: #857864;
-  --text-faint: #594f41;
+  --text-primary: #f7f3eb;
+  --text-secondary: #b8a892;
+  --text-muted: #7c6f5d;
+  --text-faint: #4e4436;
   
   --accent-green: #22c55e;
   --accent-green-dim: rgba(34, 197, 94, 0.12);
@@ -33,7 +34,8 @@
   --accent-red-dim: rgba(239, 68, 68, 0.12);
   
   /* Fontes */
-  --font-title: 'Cinzel', 'Trajan Pro', 'Georgia', serif;
+  --font-brand: 'Orbitron', 'Michroma', sans-serif;
+  --font-title: 'Orbitron', 'Michroma', -apple-system, sans-serif;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Consolas', monospace;
   
@@ -104,18 +106,16 @@ aside {
 }
 
 .aegis-logo-img {
-  width: 88px;
-  height: 88px;
-  border-radius: 50%;
-  object-fit: cover;
-  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.22), 0 0 0 2px var(--gold-bronze);
-  border: 2px solid #13100a;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 16px rgba(184, 145, 83, 0.3));
+  transition: transform 0.25s ease, filter 0.25s ease;
 }
 
 .aegis-logo-img:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 26px rgba(212, 175, 55, 0.38), 0 0 0 2px var(--gold-primary);
+  transform: scale(1.06) translateY(-2px);
+  filter: drop-shadow(0 6px 24px rgba(184, 145, 83, 0.55));
 }
 
 .aegis-brand-text {
@@ -125,24 +125,27 @@ aside {
 }
 
 .aegis-title {
-  font-family: var(--font-title);
-  font-size: 18px;
+  font-family: var(--font-brand);
+  font-size: 19px;
   font-weight: 800;
-  color: var(--gold-primary);
-  letter-spacing: 2px;
+  letter-spacing: 2.5px;
   text-transform: uppercase;
   line-height: 1.2;
+  background: linear-gradient(180deg, #ede0c4 0%, #b89153 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 14px rgba(184, 145, 83, 0.25));
 }
 
 .aegis-subtitle {
   font-size: 10px;
   font-family: var(--font-mono);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2.5px;
   color: var(--gold-sand);
-  opacity: 0.8;
-  margin-top: 3px;
+  opacity: 0.85;
+  margin-top: 4px;
 }
 
 .nav-section {
@@ -181,7 +184,7 @@ aside {
 }
 
 .nav-item:hover {
-  background: rgba(212, 175, 55, 0.05);
+  background: rgba(184, 145, 83, 0.05);
   color: var(--gold-sand);
 }
 
@@ -196,7 +199,7 @@ aside {
   font-size: 11px;
   font-weight: 600;
   color: var(--gold-sand);
-  background: rgba(212, 175, 55, 0.08);
+  background: rgba(184, 145, 83, 0.08);
   padding: 1px 7px;
   border-radius: 10px;
   border: 1px solid var(--border-subtle);
@@ -256,7 +259,7 @@ aside {
 .search-input:focus {
   border-color: var(--gold-primary);
   background: #19150e;
-  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 0 0 1px rgba(184, 145, 83, 0.25);
 }
 
 .search-icon-left {
@@ -272,7 +275,7 @@ aside {
   font-size: 11px;
   font-family: var(--font-mono);
   color: var(--gold-sand);
-  background: rgba(212, 175, 55, 0.08);
+  background: rgba(184, 145, 83, 0.08);
   border: 1px solid var(--border-subtle);
   padding: 2px 5px;
   border-radius: 4px;
@@ -285,37 +288,49 @@ aside {
   gap: 10px;
 }
 
-/* Pílulas de Categoria */
+/* Pílulas de Categoria (Tópicos) */
 .filter-bar {
-  padding: 14px 28px 4px;
+  padding: 14px 28px 6px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 8px 10px;
 }
 
 .filter-pill {
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
   font-weight: 500;
-  color: var(--text-secondary);
-  background: var(--bg-pill);
-  border: 1px solid var(--border-subtle);
-  padding: 5px 14px;
-  border-radius: 16px;
+  color: #e5e5e5;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 6px 16px;
+  border-radius: 9999px;
   cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
   transition: all 0.15s ease;
 }
 
+.filter-pill svg {
+  flex-shrink: 0;
+  display: block;
+}
+
 .filter-pill:hover {
-  background: var(--bg-pill-active);
-  color: var(--gold-sand);
-  border-color: var(--gold-bronze);
+  background: rgba(255, 255, 255, 0.07);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .filter-pill.active {
-  background: var(--gold-dim);
-  color: var(--gold-primary);
-  border-color: var(--gold-primary);
-  font-weight: 600;
+  background: rgba(184, 145, 83, 0.09);
+  color: var(--gold-sand);
+  border: 1.5px solid var(--gold-primary);
+  font-weight: 500;
+  box-shadow: 0 0 12px rgba(184, 145, 83, 0.15);
 }
 
 /* Viewport Principal */
@@ -469,8 +484,8 @@ aside {
 
 .btn-launch-site:hover {
   color: var(--gold-primary);
-  background: rgba(212, 175, 55, 0.1);
-  border-color: rgba(212, 175, 55, 0.3);
+  background: rgba(184, 145, 83, 0.1);
+  border-color: rgba(184, 145, 83, 0.3);
   transform: scale(1.1);
 }
 
@@ -490,19 +505,19 @@ aside {
 
 .btn-star:hover {
   color: var(--gold-sand);
-  background: rgba(212, 175, 55, 0.08);
-  border-color: rgba(212, 175, 55, 0.25);
+  background: rgba(184, 145, 83, 0.08);
+  border-color: rgba(184, 145, 83, 0.25);
   transform: scale(1.1);
 }
 
 .btn-star.active {
   color: var(--gold-primary);
-  background: rgba(212, 175, 55, 0.12);
-  border-color: rgba(212, 175, 55, 0.35);
+  background: rgba(184, 145, 83, 0.12);
+  border-color: rgba(184, 145, 83, 0.35);
 }
 
 .btn-star.active svg {
-  filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.55));
+  filter: drop-shadow(0 0 5px rgba(184, 145, 83, 0.55));
 }
 
 .card-tag {
@@ -603,14 +618,14 @@ button {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #d4af37 0%, #b89228 100%);
+  background: linear-gradient(135deg, #b89153 0%, #9c7739 100%);
   color: #0c0b08;
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 2px 8px rgba(184, 145, 83, 0.25);
 }
 .btn-primary:hover {
-  background: linear-gradient(135deg, #e6be44 0%, #c9a334 100%);
-  box-shadow: 0 2px 12px rgba(212, 175, 55, 0.4);
+  background: linear-gradient(135deg, #c7a264 0%, #a88142 100%);
+  box-shadow: 0 2px 12px rgba(184, 145, 83, 0.4);
 }
 
 .btn-secondary {
@@ -629,7 +644,7 @@ button {
   color: var(--text-secondary);
 }
 .btn-ghost:hover {
-  background: rgba(212, 175, 55, 0.06);
+  background: rgba(184, 145, 83, 0.06);
   color: var(--gold-sand);
 }
 
@@ -649,7 +664,7 @@ button {
   border-radius: 4px;
 }
 .btn-icon-btn:hover {
-  background: rgba(212, 175, 55, 0.08);
+  background: rgba(184, 145, 83, 0.08);
   color: var(--gold-sand);
 }
 
@@ -664,11 +679,12 @@ button {
 }
 
 .empty-logo {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
   margin-bottom: 16px;
-  opacity: 0.7;
+  opacity: 0.6;
+  filter: drop-shadow(0 2px 10px rgba(184, 145, 83, 0.2));
 }
 
 .empty-title {
@@ -709,23 +725,31 @@ button {
 }
 
 .auth-panel-logo {
-  width: 96px;
-  height: 96px;
-  margin: 0 auto 20px;
-  border-radius: 50%;
-  border: 2px solid var(--gold-bronze);
-  box-shadow: 0 0 25px rgba(212, 175, 55, 0.3);
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 18px;
   display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 24px rgba(184, 145, 83, 0.38));
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.auth-panel-logo:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 8px 30px rgba(184, 145, 83, 0.55));
 }
 
 .auth-title {
-  font-family: var(--font-title);
-  font-size: 22px;
+  font-family: var(--font-brand);
+  font-size: 24px;
   font-weight: 800;
-  color: var(--gold-primary);
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   text-transform: uppercase;
   margin-bottom: 6px;
+  background: linear-gradient(180deg, #ede0c4 0%, #b89153 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 20px rgba(184, 145, 83, 0.3));
 }
 
 .auth-subtitle {
@@ -771,7 +795,7 @@ button {
 .input-styled:focus {
   border-color: var(--gold-primary);
   background: #19150e;
-  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 0 0 1px rgba(184, 145, 83, 0.25);
 }
 
 .auth-error-box {
@@ -949,3 +973,410 @@ input[type="range"] {
   font-size: 11px;
   color: var(--gold-sand);
 }
+
+/* ==========================================================================
+   AegisCore v1.1.0 — Módulo 2FA / TOTP Card Styles
+   ========================================================================== */
+.card-totp-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(184, 145, 83, 0.08);
+  border: 1px solid rgba(184, 145, 83, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+
+.totp-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.totp-badge-icon {
+  font-size: 9px;
+  font-weight: 800;
+  color: #0c0b08;
+  background: var(--gold-primary);
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+
+.totp-token {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 2px;
+  text-shadow: 0 0 8px rgba(184, 145, 83, 0.35);
+}
+
+.totp-countdown {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gold-sand);
+  background: #241d13;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 28px;
+  text-align: center;
+}
+
+.btn-totp-copy {
+  background: transparent;
+  color: var(--gold-primary);
+  border: 1px solid rgba(184, 145, 83, 0.35);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-totp-copy:hover {
+  background: var(--gold-dim);
+  border-color: var(--gold-primary);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   AegisCore v1.1.0 — Auditoria & Saúde do Cofre
+   ========================================================================== */
+.app-view-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.health-badge {
+  background: rgba(34, 197, 94, 0.15) !important;
+  color: var(--accent-green) !important;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  font-weight: 700;
+}
+
+.health-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  gap: 16px;
+}
+
+.health-header-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.health-main-title {
+  font-family: var(--font-title);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--gold-sand);
+  line-height: 1.2;
+}
+
+.health-main-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.health-dashboard-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.health-score-card {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: linear-gradient(135deg, rgba(28, 22, 14, 0.75), rgba(16, 13, 9, 0.9));
+  border: 1px solid var(--border-card-hover);
+  border-radius: var(--radius-md);
+  padding: 22px 26px;
+}
+
+.health-score-circle {
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background: rgba(10, 10, 14, 0.7);
+  border: 3.5px solid var(--accent-green);
+  box-shadow: 0 0 18px rgba(34, 197, 94, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.health-score-circle span#health-score-val {
+  font-family: var(--font-title);
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.health-score-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.health-score-info {
+  flex: 1;
+}
+
+.health-score-title {
+  font-family: var(--font-title);
+  font-size: 17px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 5px;
+}
+
+.health-score-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.health-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 960px) {
+  .health-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.health-metric-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.health-metric-box:hover {
+  border-color: var(--gold-primary);
+  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+}
+
+.health-metric-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.health-metric-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.health-metric-val {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.health-metric-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.health-metric-detail {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.health-actions-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.health-actions-heading {
+  font-family: var(--font-title);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gold-sand);
+}
+
+.health-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.health-action-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  transition: all 0.15s ease;
+}
+
+.health-action-row:hover {
+  border-color: rgba(184, 145, 83, 0.35);
+  background: var(--bg-card-hover);
+}
+
+.health-action-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.health-action-icon.danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--accent-red);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.health-action-icon.warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.health-action-icon.info {
+  background: rgba(6, 182, 212, 0.12);
+  color: #06b6d4;
+  border: 1px solid rgba(6, 182, 212, 0.25);
+}
+
+.health-action-icon.success {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--accent-green);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.health-action-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.health-action-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+  line-height: 1.3;
+}
+
+.health-action-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.health-action-btn {
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   AegisCore v1.1.0 — Importação & Exportação CSV
+   ========================================================================== */
+.io-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 10px;
+}
+
+.io-tab {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.io-tab.active {
+  background: var(--gold-dim);
+  color: var(--gold-primary);
+}
+
+.io-info-banner {
+  background: rgba(184, 145, 83, 0.07);
+  border: 1px solid rgba(184, 145, 83, 0.2);
+  color: var(--gold-sand);
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 14px;
+}
+
+.io-warning-banner {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 14px;
+}
+
+.dropzone {
+  border: 2px dashed rgba(184, 145, 83, 0.35);
+  background: rgba(18, 15, 10, 0.6);
+  border-radius: var(--radius-md);
+  padding: 28px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--gold-primary);
+  background: rgba(184, 145, 83, 0.07);
+}
+

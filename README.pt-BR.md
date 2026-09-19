@@ -11,7 +11,7 @@
 [![Open Source](https://img.shields.io/badge/Open%20Source-%E2%99%A5-red.svg)](https://github.com/MatheusgVentura/AegisCore)
 
 <p align="center">
-  <strong>Cofre de senhas local, auditável e impenetrável com tema Desert Gold e criptografia militar de ponta a ponta.</strong>
+  <strong>Cofre de senhas local, auditável e impenetrável com tema Bronze Imperial Tático e criptografia militar de ponta a ponta.</strong>
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 
 O **AegisCore** é um gerenciador de senhas e credenciais local, independente e de código aberto (*Open Source*). Projetado sob o lema **Privacidade Absoluta e Zero Telemetria**, seus dados jamais saem do seu computador. Não há servidores externos, rastreadores ou nuvens de terceiros envolvidas.
 
-Com uma interface moderna inspirada na elegância do tema *Desert Gold* e no escudo místico da Medusa (*Aegis*), o AegisCore une arquitetura criptográfica de padrão militar à usabilidade fluida de um aplicativo desktop nativo.
+Com uma interface moderna inspirada na elegância do tema *Bronze Imperial Tático* e no escudo geométrico (*Aegis*), o AegisCore une arquitetura criptográfica de padrão militar à usabilidade fluida de um aplicativo desktop nativo.
 
 ---
 
@@ -38,6 +38,11 @@ Com uma interface moderna inspirada na elegância do tema *Desert Gold* e no esc
 | :---: | :---: |
 | <img src="./docs/screenshots/unlock.png" width="430" style="border-radius: 6px;"/> | <img src="./docs/screenshots/generator.png" width="430" style="border-radius: 6px;"/> |
 | *Cofre trancado por derivação de chave Argon2id* | *Geração CSPRNG com medição de bits de entropia* |
+
+| Dashboard de Auditoria & Saúde do Cofre (v1.1.0) |
+| :---: |
+| <img src="./docs/screenshots/audit_health.png" width="880" style="border-radius: 8px;"/> |
+| *Monitoramento contínuo de entropia criptográfica, detecção de reuso de senhas e análise de cobertura 2FA* |
 
 </div>
 
@@ -57,6 +62,9 @@ A segurança do AegisCore segue rigorosamente o **Princípio de Kerckhoffs**: a 
 
 ## ✨ Funcionalidades
 
+- **Autenticador 2FA / TOTP Integrado:** Gera tokens temporários de 6 dígitos (RFC 6238) com contador regressivo de 30s e cópia em 1 clique direto no cartão.
+- **Auditoria de Segurança & Saúde do Cofre:** Dashboard analítico que calcula a resiliência do cofre (0 a 100%), identificando senhas de baixa entropia, credenciais reutilizadas e cobertura de autenticação multifator (2FA) com ações corretivas diretas.
+- **Importação e Exportação Descomplicada (CSV):** Migre em segundos suas credenciais de navegadores (Chrome, Edge, Brave) ou outros gerenciadores (Bitwarden, KeePassXC) com detecção automática de colunas.
 - **Reconhecimento Automático de Logos:** Detecção visual inteligente de centenas de serviços (GitHub, AWS, Google, ProtonMail, OpenAI, Discord, Steam, Microsoft, bancos brasileiros, etc.).
 - **Acesso Rápido ao Navegador (↗️):** Botão direto no card para abrir o serviço ou página de login com segurança no navegador padrão do sistema.
 - **Organização por Drag-and-Drop:** Reordene seus cartões arrastando e soltando livremente, com persistência criptografada.
@@ -119,9 +127,9 @@ Os arquivos autônomos serão gerados na pasta `dist/`.
 │
 ├── 📁 ui/                     # Interface Web HUD nativa
 │   ├── 📄 index.html          # Marcação semântica e modais
-│   ├── 📄 style.css           # Design Desert Gold & tipografia Cinzel
+│   ├── 📄 style.css           # Design Bronze Imperial & tipografia Orbitron / Michroma
 │   ├── 📄 app.js              # Lógica de interface, drag-and-drop e bridges
-│   └── 📄 logo.png            # Brasão dourado do escudo AegisCore
+│   └── 📄 logo.png            # Brasão em bronze imperial do escudo AegisCore
 │
 └── 📁 docs/screenshots/       # Capturas de tela para demonstração
 ```

@@ -11,7 +11,7 @@
 [![Open Source](https://img.shields.io/badge/Open%20Source-%E2%99%A5-red.svg)](https://github.com/MatheusgVentura/AegisCore)
 
 <p align="center">
-  <strong>Local-first, auditable, and battle-hardened password vault engine styled in Desert Gold with end-to-end military-grade cryptography.</strong>
+  <strong>Local-first, auditable, and battle-hardened password vault engine styled in Tactical Imperial Bronze with end-to-end military-grade cryptography.</strong>
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 
 **AegisCore** is an independent, local-first, open-source credential and password manager built under the core principle of **Absolute Privacy & Zero Telemetry**. Your data never leaves your computer. There are no remote servers, analytics, trackers, or third-party cloud services involved.
 
-Sporting a refined HUD inspired by the elegance of *Desert Gold* and the mythological shield of Medusa (*Aegis*), AegisCore bridges military-grade cryptographic standards with the fluid responsiveness of a native desktop application.
+Sporting a refined HUD inspired by the elegance of *Tactical Imperial Bronze* and the geometric shield (*Aegis*), AegisCore bridges military-grade cryptographic standards with the fluid responsiveness of a native desktop application.
 
 ---
 
@@ -38,6 +38,11 @@ Sporting a refined HUD inspired by the elegance of *Desert Gold* and the mytholo
 | :---: | :---: |
 | <img src="./docs/screenshots/unlock.png" width="430" style="border-radius: 6px;"/> | <img src="./docs/screenshots/generator.png" width="430" style="border-radius: 6px;"/> |
 | *Vault secured by Argon2id key derivation* | *CSPRNG generation with live Shannon entropy evaluation* |
+
+| Vault Health & Security Audit Dashboard (v1.1.0) |
+| :---: |
+| <img src="./docs/screenshots/audit_health.png" width="880" style="border-radius: 8px;"/> |
+| *Continuous cryptographic entropy monitoring, password reuse detection, and 2FA coverage analysis* |
 
 </div>
 
@@ -57,6 +62,9 @@ AegisCore's security posture strictly obeys **Kerckhoffs's Principle**: security
 
 ## ✨ Features
 
+- **Integrated 2FA / TOTP Authenticator:** Generates RFC 6238 compliant 6-digit tokens with real-time 30s countdown and 1-click clipboard copy on credential cards.
+- **Vault Health & Security Audit Dashboard:** Analytical dashboard evaluating vault resilience (0-100%), identifying low-entropy passwords, reused credentials, and multi-factor authentication (2FA) coverage with direct corrective actions.
+- **Seamless CSV Import & Export:** Effortlessly migrate credentials from Chrome, Edge, Brave, Bitwarden, and KeePassXC with intelligent field auto-detection.
 - **Smart Logo Auto-Detection:** Automatically matches brand icons for hundreds of services (GitHub, AWS, Google, ProtonMail, OpenAI, Discord, Steam, Microsoft, Brazilian banks, etc.).
 - **Quick Browser Launch (↗️):** Direct action buttons on credential cards to open login portals securely in your default browser.
 - **Drag-and-Drop Reordering:** Organize entries manually with intuitive drag-and-drop mechanics preserved securely on disk.
@@ -119,9 +127,9 @@ Artifacts will be placed inside the `dist/` directory.
 │
 ├── 📁 ui/                     # Native Web HUD
 │   ├── 📄 index.html          # Semantic structure & modals
-│   ├── 📄 style.css           # Desert Gold styling & Cinzel typography
+│   ├── 📄 style.css           # Tactical Imperial Bronze styling & Orbitron / Michroma typography
 │   ├── 📄 app.js              # State management & pywebview bridge
-│   └── 📄 logo.png            # AegisCore golden shield insignia
+│   └── 📄 logo.png            # AegisCore imperial bronze shield insignia
 │
 └── 📁 docs/screenshots/       # UI showcase images
 ```
