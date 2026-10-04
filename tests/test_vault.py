@@ -3,7 +3,7 @@ import tempfile
 from unittest.mock import MagicMock
 import pytest
 import vault_core
-from app import VaultApi, TrayIconManager
+from app import VaultApi, TrayIconManager, SingleInstanceManager
 
 
 @pytest.fixture(autouse=True)
@@ -428,6 +428,27 @@ def test_tray_icon_manager_autotype_actions():
     api.perform_autotype = MagicMock(return_value={"success": True, "servico": "AWS Cloud"})
     tray.trigger_autotype()
     api.perform_autotype.assert_called_with("cred-1")
+
+
+def test_single_instance_manager_lifecycle():
+    import sys
+    app_id = f"AegisCore_Test_{os.getpid()}"
+    inst1 = SingleInstanceManager(app_id=app_id)
+    assert inst1.acquire() is True
+
+    if sys.platform == "win32":
+        woken = []
+        inst1.start_listener(lambda: woken.append(True))
+
+        # Segunda instância deve detectar a existência e falhar no acquire
+        inst2 = SingleInstanceManager(app_id=app_id)
+        assert inst2.acquire() is False
+
+        import time
+        time.sleep(0.3)
+        assert len(woken) == 1
+
+    inst1.release()
 
 
 
