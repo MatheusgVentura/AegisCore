@@ -749,7 +749,7 @@ function renderCards() {
           <div class="card-header-actions">
             ${
               siteUrl
-                ? `<button type="button" class="btn-launch-site" title="Abrir site no navegador (${siteUrl})" onclick="openServiceUrl('${escapeAttr(siteUrl)}', event)">
+                ? `<button type="button" class="btn-launch-site" title="Abrir site no navegador (${escapeAttr(siteUrl)})" onclick="openServiceUrl('${entry.id}', event)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
                       <polyline points="15 3 21 3 21 9"/>
@@ -804,13 +804,13 @@ function renderCards() {
 
       <div class="card-action-bar">
         <div class="card-action-btns-left">
-          <button class="btn-primary" onclick="copyPassword('${escapeAttr(entry.senha)}')">
+          <button class="btn-primary" onclick="copyPassword('${entry.id}')">
             Copiar Senha
           </button>
-          <button class="btn-secondary" onclick="copyUser('${escapeAttr(entry.usuario)}')">
+          <button class="btn-secondary" onclick="copyUser('${entry.id}')">
             Usuário
           </button>
-          <button class="btn-icon-btn" title="Mostrar/Ocultar" onclick="toggleCardPassword('${entry.id}', '${escapeAttr(entry.senha)}')">
+          <button class="btn-icon-btn" title="Mostrar/Ocultar" onclick="toggleCardPassword('${entry.id}')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
           <button class="btn-icon-btn" title="Auto-Type (Digitar Credenciais no Aplicativo ou Navegador Anterior)" onclick="triggerAutoType('${entry.id}', event)">
@@ -822,7 +822,7 @@ function renderCards() {
           <button class="btn-icon-btn" title="Editar" onclick="editEntry('${entry.id}')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button class="btn-danger-ghost" title="Excluir" onclick="promptDelete('${entry.id}', '${escapeAttr(entry.servico)}')">
+          <button class="btn-danger-ghost" title="Excluir" onclick="promptDelete('${entry.id}')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
         </div>
@@ -897,8 +897,12 @@ function renderCards() {
 window.toggleCardPassword = function (id, rawPassword) {
   const el = document.getElementById(`pass-val-${id}`);
   if (!el) return;
+  const entry = state.entries.find((e) => e.id === id);
+  const password = entry ? entry.senha : rawPassword;
+  if (!password) return;
+
   if (el.innerText === '••••••••••••') {
-    el.innerText = rawPassword;
+    el.innerText = password;
     el.style.color = '#ffffff';
   } else {
     el.innerText = '••••••••••••';
@@ -906,13 +910,19 @@ window.toggleCardPassword = function (id, rawPassword) {
   }
 };
 
-window.copyUser = async function (user) {
+window.copyUser = async function (idOrUser) {
+  let user = idOrUser;
+  const entry = state.entries.find((e) => e.id === idOrUser);
+  if (entry) user = entry.usuario;
   if (!user) return;
   await callApi('copy_to_clipboard', user, false);
   triggerToast('Usuário copiado para a área de transferência', 3);
 };
 
-window.copyPassword = async function (pass) {
+window.copyPassword = async function (idOrPass) {
+  let pass = idOrPass;
+  const entry = state.entries.find((e) => e.id === idOrPass);
+  if (entry) pass = entry.senha;
   if (!pass) return;
   const res = await callApi('copy_to_clipboard', pass, true);
   const timeout = (res && res.timeout) ? res.timeout : (state.settings?.clipboard_clear_seconds || 15);
@@ -976,11 +986,14 @@ window.toggleFavorite = async function (id, event) {
 };
 
 // Abrir Site Externo no Navegador Padrão
-window.openServiceUrl = async function (url, event) {
+window.openServiceUrl = async function (idOrUrl, event) {
   if (event) {
     event.stopPropagation();
     event.preventDefault();
   }
+  let url = idOrUrl;
+  const entry = state.entries.find((e) => e.id === idOrUrl);
+  if (entry) url = getServiceUrl(entry);
   if (!url) return;
   await callApi('open_url', url);
   triggerToast('Abrindo site no navegador', 2);
@@ -1103,7 +1116,10 @@ async function handleSaveEntry(e) {
 // Modal Exclusão
 window.promptDelete = function (id, serviceName) {
   state.pendingDeleteId = id;
-  document.getElementById('delete-service-name').innerText = serviceName;
+  const entry = state.entries.find((e) => e.id === id);
+  const name = serviceName || (entry ? entry.servico : 'esta credencial');
+  const nameEl = document.getElementById('delete-service-name');
+  if (nameEl) nameEl.innerText = name;
   document.getElementById('modal-delete').classList.add('active');
 };
 
@@ -1235,12 +1251,22 @@ async function updateEntropyMeter(pwd, fillId, labelId, bitsId) {
 // Escape de strings
 function escapeHtml(str) {
   if (!str) return '';
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function escapeAttr(str) {
   if (!str) return '';
-  return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/'/g, '&#39;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 /* ==========================================================================
@@ -1296,7 +1322,7 @@ window.copyTotp = async function (id, event) {
     event.preventDefault();
   }
   const tokenData = state.totpTokens[id];
-  if (tokenData && tokenData.code && tokenData.code !== 'INVÁLIDO') {
+  if (tokenData && tokenData.valid && tokenData.code && tokenData.code !== 'INVÁLIDO') {
     const res = await callApi('copy_to_clipboard', tokenData.code, true);
     const timeout = (res && res.timeout) ? res.timeout : (state.settings?.clipboard_clear_seconds || 15);
     triggerToast('Código 2FA copiado com segurança', timeout);

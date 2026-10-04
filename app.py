@@ -155,6 +155,9 @@ class VaultApi:
         if not self._chave:
             return {"success": False, "error": "Cofre bloqueado."}
 
+        if not isinstance(entry_data, dict):
+            return {"success": False, "error": "Dados inválidos."}
+
         entry_id = entry_data.get("id")
         servico = str(entry_data.get("servico") or "").strip()
         usuario = str(entry_data.get("usuario") or "").strip()
@@ -248,6 +251,9 @@ class VaultApi:
         if not self._chave:
             return {"success": False, "error": "Cofre bloqueado."}
 
+        if not isinstance(ordered_ids, (list, tuple)):
+            return {"success": False, "error": "Lista de IDs inválida."}
+
         id_map = {item["id"]: item for item in self._cofre}
         nova_ordem = []
         for eid in ordered_ids:
@@ -273,6 +279,8 @@ class VaultApi:
             return {"success": False, "error": "Cofre bloqueado."}
 
         self._cofre = [item for item in self._cofre if item["id"] != entry_id]
+        if self._last_selected_entry_id == entry_id:
+            self._last_selected_entry_id = None
 
         try:
             vault_core.salvar_cofre(self._cofre, self._chave, self._salt)

@@ -16,7 +16,6 @@ import csv
 import io
 from typing import Any
 from datetime import datetime
-from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
 
@@ -76,15 +75,25 @@ def derivar_chave(senha_mestra: str, salt: bytes) -> bytes:
     return kdf.derive(senha_mestra.encode("utf-8"))
 
 
-def normalizar_cofre(dados_descriptografados: any) -> list[dict]:
+def normalizar_cofre(dados_descriptografados: Any) -> list[dict]:
     """
     Garante que o cofre seja sempre uma lista de objetos padronizados,
     mantendo compatibilidade retroativa com a versão anterior baseada em dicionário.
     """
     if isinstance(dados_descriptografados, list):
-        for item in dados_descriptografados:
+        itens_normalizados = []
+        for raw_item in dados_descriptografados:
+            if not isinstance(raw_item, dict):
+                continue
+            item = dict(raw_item)
             if "id" not in item or not item.get("id"):
                 item["id"] = uuid.uuid4().hex[:12]
+            if "servico" not in item or item.get("servico") is None:
+                item["servico"] = ""
+            if "usuario" not in item or item.get("usuario") is None:
+                item["usuario"] = ""
+            if "senha" not in item or item.get("senha") is None:
+                item["senha"] = ""
             if "url" not in item or item.get("url") is None:
                 item["url"] = ""
             if "notas" not in item or item.get("notas") is None:
@@ -97,14 +106,17 @@ def normalizar_cofre(dados_descriptografados: any) -> list[dict]:
                 item["criado_em"] = datetime.now().strftime("%d/%m/%Y %H:%M")
             if "atualizado_em" not in item or not item.get("atualizado_em"):
                 item["atualizado_em"] = item.get("criado_em", "")
-        return dados_descriptografados
+            itens_normalizados.append(item)
+        return itens_normalizados
 
     if isinstance(dados_descriptografados, dict):
         lista_migrada = []
         for servico, info in dados_descriptografados.items():
+            if not isinstance(info, dict):
+                info = {}
             lista_migrada.append({
                 "id": uuid.uuid4().hex[:12],
-                "servico": servico,
+                "servico": str(servico or ""),
                 "usuario": info.get("usuario", ""),
                 "senha": info.get("senha", ""),
                 "url": info.get("url", ""),
@@ -190,8 +202,15 @@ def salvar_cofre(cofre: list[dict], chave: bytes, salt: bytes, vault_path: str |
     if os.path.exists(vault_path):
         shutil.copy2(vault_path, f"{vault_path}.bak")
 
-    # 3. Substituição atômica no sistema de arquivos
-    os.replace(temp_path, vault_path)
+    # 3. Substituição atômica no sistema de arquivos com retentativas para evitar bloqueios do Windows
+    for tentativa in range(5):
+        try:
+            os.replace(temp_path, vault_path)
+            break
+        except PermissionError:
+            if tentativa == 4:
+                raise
+            time.sleep(0.05)
 
 
 def gerar_senha_forte(
@@ -535,10 +554,15 @@ def importar_csv(conteudo_csv: str) -> tuple[list[dict], int]:
     - Formatos genéricos compatíveis.
     Retorna (lista_de_novos_registros, quantidade_importada).
     """
-    if not conteudo_csv or not conteudo_csv.strip():
+    if not conteudo_csv or not str(conteudo_csv).strip():
         return [], 0
 
-    f = io.StringIO(conteudo_csv.strip())
+    # Remove BOM UTF-8 (\ufeff) se presente
+    conteudo_csv = str(conteudo_csv).lstrip("\ufeff").strip()
+    if not conteudo_csv:
+        return [], 0
+
+    f = io.StringIO(conteudo_csv)
     # Usa Sniffer para detectar delimitador (vírgula ou ponto-e-vírgula)
     try:
         sample = conteudo_csv[:2048]
@@ -555,8 +579,14 @@ def importar_csv(conteudo_csv: str) -> tuple[list[dict], int]:
     agora = datetime.now().strftime("%d/%m/%Y %H:%M")
 
     for row in reader:
-        # Cria mapa normalizado de colunas em minúsculas
-        cols = {k.lower().strip(): (v.strip() if v else "") for k, v in row.items() if k}
+        if not isinstance(row, dict):
+            continue
+        # Cria mapa normalizado de colunas em minúsculas removendo BOM residual
+        cols = {
+            str(k).lstrip("\ufeff").lower().strip(): (v.strip() if v else "")
+            for k, v in row.items()
+            if k is not None
+        }
 
         # Reconhecimento do Serviço / Nome
         servico = (
@@ -746,7 +776,14 @@ def salvar_configuracoes(novas_configuracoes: dict, settings_path: str | None = 
     temp_path = f"{path}.tmp"
     with open(temp_path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
-    os.replace(temp_path, path)
+    for tentativa in range(5):
+        try:
+            os.replace(temp_path, path)
+            break
+        except PermissionError:
+            if tentativa == 4:
+                raise
+            time.sleep(0.05)
 
     return config
 
