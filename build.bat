@@ -22,7 +22,7 @@ if errorlevel 1 (
 
 echo [3/3] Criando arquivo portatil zip em dist\...
 powershell -Command "Compress-Archive -Path 'dist\AegisCore\*' -DestinationPath 'dist\AegisCore-Portable.zip' -Force"
-powershell -Command "Copy-Item 'dist\AegisCore-Portable.zip' 'dist\AegisCore-v1.2.1-Portable-Windows.zip' -Force"
+powershell -Command "Copy-Item 'dist\AegisCore-Portable.zip' 'dist\AegisCore-v1.2.2-Portable-Windows.zip' -Force"
 
 echo.
 echo ======================================================
