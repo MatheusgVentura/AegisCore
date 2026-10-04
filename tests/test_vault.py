@@ -1,5 +1,4 @@
 import os
-import tempfile
 from unittest.mock import MagicMock
 import pytest
 import vault_core
@@ -449,6 +448,100 @@ def test_single_instance_manager_lifecycle():
         assert len(woken) == 1
 
     inst1.release()
+
+
+def test_normalizar_cofre_resilience():
+    # Testa dados malformados, tipos incorretos e None
+    assert vault_core.normalizar_cofre(None) == []
+    assert vault_core.normalizar_cofre("invalido") == []
+    assert vault_core.normalizar_cofre(123) == []
+
+    # Lista com elementos inválidos misturados
+    malformed_list = [
+        None,
+        "string_corrompida",
+        12345,
+        {"servico": "Valido", "senha": "123"},
+        {},
+    ]
+    res = vault_core.normalizar_cofre(malformed_list)
+    assert len(res) == 2
+    assert res[0]["servico"] == "Valido"
+    assert res[0]["senha"] == "123"
+    assert len(res[0]["id"]) > 0
+    assert res[1]["servico"] == ""
+    assert len(res[1]["id"]) > 0
+
+
+def test_importar_csv_with_utf8_bom_and_delimiters():
+    # CSV com BOM UTF-8 (\ufeff) e ponto-e-vírgula
+    bom_csv = "\ufeffServico;Usuario;Senha\nServicoBOM;userBOM;PassBOM123!\n"
+    items, count = vault_core.importar_csv(bom_csv)
+    assert count == 1
+    assert items[0]["servico"] == "ServicoBOM"
+    assert items[0]["usuario"] == "userBOM"
+    assert items[0]["senha"] == "PassBOM123!"
+
+    # CSV vazio ou apenas espaços
+    assert vault_core.importar_csv("") == ([], 0)
+    assert vault_core.importar_csv("   \n\n  ") == ([], 0)
+
+
+def test_vault_api_delete_entry_clears_active_selection():
+    api = VaultApi()
+    salt = os.urandom(16)
+    api._chave = vault_core.derivar_chave("MasterPass123!", salt)
+    api._salt = salt
+    api._cofre = [
+        {"id": "entry-1", "servico": "Service1", "usuario": "u1", "senha": "p1"},
+        {"id": "entry-2", "servico": "Service2", "usuario": "u2", "senha": "p2"},
+    ]
+    api.set_active_entry("entry-1")
+    assert api._last_selected_entry_id == "entry-1"
+
+    # Ao excluir o item selecionado, _last_selected_entry_id deve ser limpo
+    res = api.delete_entry("entry-1")
+    assert res["success"] is True
+    assert api._last_selected_entry_id is None
+    assert len(api._cofre) == 1
+
+
+def test_vault_api_defensive_type_checks():
+    api = VaultApi()
+    salt = os.urandom(16)
+    api._chave = vault_core.derivar_chave("MasterPass123!", salt)
+    api._salt = salt
+    api._cofre = []
+
+    # save_entry com entrada inválida (None ou não-dict)
+    res_none = api.save_entry(None)
+    assert res_none["success"] is False
+
+    # reorder_entries com tipo não-lista
+    res_reorder = api.reorder_entries(None)
+    assert res_reorder["success"] is False
+
+
+def test_salvar_cofre_permission_retry(monkeypatch):
+    import time
+    tentativas = []
+    original_replace = os.replace
+
+    def mock_replace(src, dst):
+        tentativas.append(True)
+        if len(tentativas) < 3:
+            raise PermissionError("Arquivo em uso pelo Windows Defender")
+        return original_replace(src, dst)
+
+    monkeypatch.setattr(os, "replace", mock_replace)
+    monkeypatch.setattr(time, "sleep", lambda s: None)
+
+    salt = os.urandom(16)
+    chave = vault_core.derivar_chave("TestRetry123!", salt)
+    vault_core.salvar_cofre([{"id": "1", "servico": "S", "senha": "P"}], chave, salt)
+
+    assert len(tentativas) == 3
+
 
 
 
