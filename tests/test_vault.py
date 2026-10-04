@@ -322,4 +322,113 @@ def test_tray_icon_manager_actions_and_closing():
     mock_window.destroy.assert_called_once()
 
 
+def test_autotype_settings_persistence():
+    cfg = vault_core.carregar_configuracoes()
+    assert cfg["autotype_press_enter"] is True
+    assert cfg["autotype_delay_ms"] == 500
+
+    salvo = vault_core.salvar_configuracoes({
+        "autotype_press_enter": False,
+        "autotype_delay_ms": 1000,
+    })
+    assert salvo["autotype_press_enter"] is False
+    assert salvo["autotype_delay_ms"] == 1000
+
+    reloaded = vault_core.carregar_configuracoes()
+    assert reloaded["autotype_press_enter"] is False
+    assert reloaded["autotype_delay_ms"] == 1000
+
+
+def test_executar_autotype_simulated():
+    from pynput.keyboard import Key
+    mock_kb = MagicMock()
+
+    # Cenário com usuário, senha e enter
+    res = vault_core.executar_autotype(
+        usuario="operador@aegis.corp",
+        senha="TacticalVaultPassword123!",
+        press_enter=True,
+        delay_ms=0,
+        keyboard_controller=mock_kb,
+    )
+    assert res is True
+    assert mock_kb.type.call_count == 2
+    mock_kb.tap.assert_any_call(Key.tab)
+    mock_kb.tap.assert_any_call(Key.enter)
+
+    # Cenário sem enter e apenas senha
+    mock_kb.reset_mock()
+    res2 = vault_core.executar_autotype(
+        usuario="",
+        senha="OnlyPassword456!",
+        press_enter=False,
+        delay_ms=0,
+        keyboard_controller=mock_kb,
+    )
+    assert res2 is True
+    assert mock_kb.type.call_count == 1
+    mock_kb.type.assert_called_with("OnlyPassword456!")
+    assert mock_kb.tap.call_count == 0
+
+
+def test_vault_api_autotype_workflow():
+    api = VaultApi()
+    mock_window = MagicMock()
+    api.set_window(mock_window)
+
+    # 1. Com cofre bloqueado, deve falhar
+    assert api.perform_autotype("entry-1")["success"] is False
+
+    # 2. Desbloqueia cofre em memória
+    salt = os.urandom(16)
+    api._chave = vault_core.derivar_chave("MasterPass123!", salt)
+    api._salt = salt
+    api._cofre = [
+        {"id": "entry-alpha", "servico": "ProtonMail", "usuario": "sec@pm.me", "senha": "SecretPassword!"}
+    ]
+
+    # 3. Credencial não encontrada
+    assert api.perform_autotype("entry-inexistente")["success"] is False
+
+    # 4. Credencial válida
+    api.set_active_entry("entry-alpha")
+    assert api._last_selected_entry_id == "entry-alpha"
+
+    res = api.perform_autotype("entry-alpha")
+    assert res["success"] is True
+    assert res["servico"] == "ProtonMail"
+    mock_window.minimize.assert_called_once()
+
+    # 5. Lock vault higieniza _last_selected_entry_id
+    api.lock_vault()
+    assert api._last_selected_entry_id is None
+    assert len(api._chave) == 0
+
+
+def test_tray_icon_manager_autotype_actions():
+    api = VaultApi()
+    mock_window = MagicMock()
+    tray = TrayIconManager(api=api, window=mock_window, icon_path="aegiscore.ico")
+    tray.notify = MagicMock()
+
+    # 1. Cofre bloqueado -> restaura janela e avisa
+    tray.trigger_autotype()
+    mock_window.show.assert_called()
+    mock_window.restore.assert_called()
+
+    # 2. Cofre desbloqueado sem credencial ativa -> restaura janela e foca busca
+    api._chave = b"mock-key"
+    mock_window.reset_mock()
+    tray.trigger_autotype()
+    mock_window.show.assert_called()
+    mock_window.evaluate_js.assert_called_with("if (window.focusSearch) window.focusSearch();")
+
+    # 3. Cofre desbloqueado com credencial ativa -> chama perform_autotype
+    api._last_selected_entry_id = "cred-1"
+    api.perform_autotype = MagicMock(return_value={"success": True, "servico": "AWS Cloud"})
+    tray.trigger_autotype()
+    api.perform_autotype.assert_called_with("cred-1")
+
+
+
 

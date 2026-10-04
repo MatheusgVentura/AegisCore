@@ -663,7 +663,7 @@
         </div>
 
         <!-- Configuração: Minimizar para Bandeja -->
-        <div class="form-field" style="margin-bottom: 24px;">
+        <div class="form-field" style="margin-bottom: 20px;">
           <label class="field-label" style="display: flex; align-items: center; justify-content: space-between;">
             <span>Bandeja do Sistema (System Tray)</span>
             <span class="badge-tag" style="background: rgba(184, 145, 83, 0.15); color: var(--gold-primary); font-size: 10px; padding: 2px 6px; border-radius: 4px;">Desktop</span>
@@ -674,6 +674,37 @@
           </label>
           <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 5px;">
             Mantém o AegisCore ativo em segundo plano no relógio do Windows ao clicar no X. O menu de contexto na bandeja permite reabrir, bloquear ou sair definitivamente.
+          </span>
+        </div>
+
+        <!-- Configuração: Auto-Type Global -->
+        <div class="form-field" style="margin-bottom: 20px;">
+          <label class="field-label" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Auto-Type (Preenchimento Universal)</span>
+            <span class="badge-tag" style="background: rgba(184, 145, 83, 0.15); color: var(--gold-primary); font-size: 10px; padding: 2px 6px; border-radius: 4px;">Ctrl+Alt+V</span>
+          </label>
+          <label class="checkbox-label" style="margin-top: 6px;">
+            <input type="checkbox" id="setting-autotype-enter" checked>
+            Pressionar [Enter] automaticamente após digitar a senha
+          </label>
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 5px;">
+            Simula o envio automático do formulário de login no navegador ou aplicativo após preencher o usuário e senha.
+          </span>
+        </div>
+
+        <div class="form-field" style="margin-bottom: 24px;">
+          <label class="field-label" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Atraso de Digitação (Auto-Type Delay)</span>
+            <span class="badge-tag" style="background: rgba(184, 145, 83, 0.15); color: var(--gold-primary); font-size: 10px; padding: 2px 6px; border-radius: 4px;">Foco</span>
+          </label>
+          <select id="setting-autotype-delay" class="input-styled select-styled">
+            <option value="300">300 ms (Rápido)</option>
+            <option value="500" selected>500 ms (Padrão Recomendado)</option>
+            <option value="1000">1000 ms (1 segundo)</option>
+            <option value="1500">1500 ms (1.5 segundos)</option>
+          </select>
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 5px;">
+            Tempo de espera após minimizar o AegisCore para garantir que o cursor esteja ativo no campo de login de destino.
           </span>
         </div>
 

@@ -13,6 +13,8 @@ let state = {
     auto_lock_minutes: 5,
     clipboard_clear_seconds: 15,
     minimize_to_tray: true,
+    autotype_press_enter: true,
+    autotype_delay_ms: 500,
   },
   generatorMode: 'password',
   inactivityTimer: null,
@@ -811,6 +813,9 @@ function renderCards() {
           <button class="btn-icon-btn" title="Mostrar/Ocultar" onclick="toggleCardPassword('${entry.id}', '${escapeAttr(entry.senha)}')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
+          <button class="btn-icon-btn" title="Auto-Type (Digitar Credenciais no Aplicativo ou Navegador Anterior)" onclick="triggerAutoType('${entry.id}', event)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>
+          </button>
         </div>
 
         <div class="card-action-btns-right">
@@ -823,6 +828,11 @@ function renderCards() {
         </div>
       </div>
     `;
+
+    // Define credencial como ativa ao interagir com o card
+    card.addEventListener('click', () => {
+      callApi('set_active_entry', entry.id);
+    });
 
     // Listeners de Drag and Drop
     card.addEventListener('dragstart', (e) => {
@@ -907,6 +917,32 @@ window.copyPassword = async function (pass) {
   const res = await callApi('copy_to_clipboard', pass, true);
   const timeout = (res && res.timeout) ? res.timeout : (state.settings?.clipboard_clear_seconds || 15);
   triggerToast('Senha copiada com segurança • Limpeza em', timeout);
+};
+
+// Auto-Type Global e Local
+window.triggerAutoType = async function (id, event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  try {
+    const delay = Number(state.settings?.autotype_delay_ms ?? 500);
+    triggerToast(`Auto-Type: Minimizando e digitando em ${(delay / 1000).toFixed(1)}s...`, 3);
+    const res = await callApi('perform_autotype', id);
+    if (!res || !res.success) {
+      triggerToast(res?.error || 'Erro ao acionar Auto-Type.', 3);
+    }
+  } catch (err) {
+    console.error('Erro no Auto-Type:', err);
+  }
+};
+
+window.focusSearch = function () {
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.focus();
+    searchInput.select();
+  }
 };
 
 // Alternar Favorito AegisCore
@@ -1643,6 +1679,8 @@ function openSettingsModal() {
   const selAutoLock = document.getElementById('setting-auto-lock');
   const selClipboard = document.getElementById('setting-clipboard-clear');
   const chkMinimizeTray = document.getElementById('setting-minimize-tray');
+  const chkAutoTypeEnter = document.getElementById('setting-autotype-enter');
+  const selAutoTypeDelay = document.getElementById('setting-autotype-delay');
 
   if (selAutoLock) {
     selAutoLock.value = String(state.settings?.auto_lock_minutes ?? 5);
@@ -1652,6 +1690,12 @@ function openSettingsModal() {
   }
   if (chkMinimizeTray) {
     chkMinimizeTray.checked = state.settings?.minimize_to_tray !== false;
+  }
+  if (chkAutoTypeEnter) {
+    chkAutoTypeEnter.checked = state.settings?.autotype_press_enter !== false;
+  }
+  if (selAutoTypeDelay) {
+    selAutoTypeDelay.value = String(state.settings?.autotype_delay_ms ?? 500);
   }
   if (modal) modal.classList.add('active');
 }
@@ -1665,11 +1709,15 @@ async function handleSaveSettings() {
   const selAutoLock = document.getElementById('setting-auto-lock');
   const selClipboard = document.getElementById('setting-clipboard-clear');
   const chkMinimizeTray = document.getElementById('setting-minimize-tray');
+  const chkAutoTypeEnter = document.getElementById('setting-autotype-enter');
+  const selAutoTypeDelay = document.getElementById('setting-autotype-delay');
 
   const newSettings = {
     auto_lock_minutes: parseInt(selAutoLock.value, 10),
     clipboard_clear_seconds: parseInt(selClipboard.value, 10),
     minimize_to_tray: chkMinimizeTray ? chkMinimizeTray.checked : true,
+    autotype_press_enter: chkAutoTypeEnter ? chkAutoTypeEnter.checked : true,
+    autotype_delay_ms: selAutoTypeDelay ? parseInt(selAutoTypeDelay.value, 10) : 500,
   };
 
   try {

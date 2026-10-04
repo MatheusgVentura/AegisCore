@@ -29,6 +29,7 @@ class VaultApi:
         self._salt: bytes = b""
         self._clipboard_timer: threading.Timer | None = None
         self._last_copied_sensitive: str = ""
+        self._last_selected_entry_id: str | None = None
         self._window = None
 
     def set_window(self, window):
@@ -93,7 +94,61 @@ class VaultApi:
             except Exception:
                 pass
             self._last_copied_sensitive = ""
+        self._last_selected_entry_id = None
         return {"success": True}
+
+    def set_active_entry(self, entry_id: str) -> dict:
+        """Define a credencial ativa para atalhos rápidos como Auto-Type."""
+        self._last_selected_entry_id = entry_id
+        return {"success": True}
+
+    def perform_autotype(self, entry_id: str | None = None) -> dict:
+        """
+        Executa a sequência de auto-digitação (usuário -> TAB -> senha -> ENTER)
+        após minimizar a janela para retornar o foco à aplicação ativa.
+        """
+        if not self._chave:
+            return {"success": False, "error": "Cofre bloqueado."}
+
+        target_id = entry_id or self._last_selected_entry_id
+        if not target_id:
+            return {"success": False, "error": "Nenhuma credencial selecionada para Auto-Type."}
+
+        entry = next((item for item in self._cofre if item.get("id") == target_id), None)
+        if not entry:
+            return {"success": False, "error": "Credencial não encontrada no cofre."}
+
+        self._last_selected_entry_id = target_id
+
+        settings = vault_core.carregar_configuracoes()
+        press_enter = settings.get("autotype_press_enter", True)
+        delay_ms = settings.get("autotype_delay_ms", 500)
+
+        # Minimiza a janela para que o foco volte ao navegador/aplicativo anterior
+        if self._window:
+            try:
+                self._window.minimize()
+            except Exception:
+                pass
+
+        # Dispara thread com a sequência de digitação
+        usuario = str(entry.get("usuario") or "")
+        senha = str(entry.get("senha") or "")
+
+        def worker():
+            vault_core.executar_autotype(
+                usuario=usuario,
+                senha=senha,
+                press_enter=press_enter,
+                delay_ms=delay_ms,
+            )
+
+        threading.Thread(target=worker, daemon=True).start()
+        return {
+            "success": True,
+            "servico": entry.get("servico", ""),
+            "delay_ms": delay_ms,
+        }
 
     def save_entry(self, entry_data: dict) -> dict:
         """Adiciona ou atualiza uma credencial de forma atômica."""
@@ -432,6 +487,7 @@ class TrayIconManager:
         self.window = window
         self.icon_path = icon_path
         self.icon: pystray.Icon | None = None
+        self.hotkeys = None
         self.is_exiting = False
 
     def _create_image(self) -> Image.Image:
@@ -458,6 +514,34 @@ class TrayIconManager:
             self.window.restore()
         except Exception:
             pass
+
+    def trigger_autotype(self, icon=None, item=None):
+        """Dispara a rotina de preenchimento automático para a credencial ativa."""
+        if not self.api._chave:
+            self.show_window()
+            self.notify(
+                "Cofre bloqueado. Desbloqueie sua sessão para utilizar o Auto-Type.",
+                "AegisCore — Auto-Type",
+            )
+            return
+
+        if self.api._last_selected_entry_id:
+            res = self.api.perform_autotype(self.api._last_selected_entry_id)
+            if res.get("success"):
+                self.notify(
+                    f"Digitando credenciais de '{res.get('servico', 'Serviço')}'...",
+                    "AegisCore — Auto-Type",
+                )
+        else:
+            self.show_window()
+            try:
+                self.window.evaluate_js("if (window.focusSearch) window.focusSearch();")
+            except Exception:
+                pass
+            self.notify(
+                "Selecione uma credencial ou clique no botão de Auto-Type.",
+                "AegisCore — Auto-Type",
+            )
 
     def lock_vault(self, icon=None, item=None):
         """Tranca o cofre imediatamente, higieniza a RAM e reflete na interface visual."""
@@ -496,6 +580,12 @@ class TrayIconManager:
             self.api.lock_vault()
         except Exception:
             pass
+        if self.hotkeys:
+            try:
+                self.hotkeys.stop()
+            except Exception:
+                pass
+            self.hotkeys = None
         if self.icon:
             try:
                 self.icon.stop()
@@ -530,10 +620,11 @@ class TrayIconManager:
         return True
 
     def start(self):
-        """Inicia o ícone da bandeja em segundo plano."""
+        """Inicia o ícone da bandeja e o listener de atalhos globais em segundo plano."""
         image = self._create_image()
         menu = pystray.Menu(
             pystray.MenuItem("Abrir AegisCore", self.show_window, default=True),
+            pystray.MenuItem("Auto-Type (Ctrl+Alt+V)", self.trigger_autotype),
             pystray.MenuItem("Bloquear Cofre", self.lock_vault),
             pystray.MenuItem("Gerar Senha Rápida", self.quick_password),
             pystray.Menu.SEPARATOR,
@@ -542,8 +633,24 @@ class TrayIconManager:
         self.icon = pystray.Icon("AegisCore", image, "AegisCore — Password Vault", menu=menu)
         self.icon.run_detached()
 
+        # Inicia o atalho global Ctrl+Alt+V
+        try:
+            from pynput import keyboard
+            self.hotkeys = keyboard.GlobalHotKeys({
+                '<ctrl>+<alt>+v': self.trigger_autotype,
+            })
+            self.hotkeys.start()
+        except Exception:
+            self.hotkeys = None
+
     def stop(self):
-        """Para o ícone da bandeja se ativo."""
+        """Para o ícone da bandeja e o listener de atalhos."""
+        if self.hotkeys:
+            try:
+                self.hotkeys.stop()
+            except Exception:
+                pass
+            self.hotkeys = None
         if self.icon:
             try:
                 self.icon.stop()

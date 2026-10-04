@@ -14,6 +14,7 @@ import base64
 import re
 import csv
 import io
+from typing import Any
 from datetime import datetime
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -670,12 +671,14 @@ DEFAULT_SETTINGS = {
     "auto_lock_minutes": 5,
     "clipboard_clear_seconds": 15,
     "minimize_to_tray": True,
+    "autotype_press_enter": True,
+    "autotype_delay_ms": 500,
 }
 
 
 def carregar_configuracoes(settings_path: str | None = None) -> dict:
     """
-    Carrega as preferências locais do usuário (auto-bloqueio, clipboard, bandeja, etc.).
+    Carrega as preferências locais do usuário (auto-bloqueio, clipboard, bandeja, auto-type, etc.).
     Retorna os padrões seguros caso o arquivo não exista ou ocorra erro de leitura.
     """
     path = settings_path or SETTINGS_FILE
@@ -698,6 +701,13 @@ def carregar_configuracoes(settings_path: str | None = None) -> dict:
                             pass
                     if "minimize_to_tray" in dados:
                         config["minimize_to_tray"] = bool(dados["minimize_to_tray"])
+                    if "autotype_press_enter" in dados:
+                        config["autotype_press_enter"] = bool(dados["autotype_press_enter"])
+                    if "autotype_delay_ms" in dados:
+                        try:
+                            config["autotype_delay_ms"] = max(200, min(3000, int(dados["autotype_delay_ms"])))
+                        except (ValueError, TypeError):
+                            pass
         except Exception:
             pass
 
@@ -724,6 +734,13 @@ def salvar_configuracoes(novas_configuracoes: dict, settings_path: str | None = 
                 pass
         if "minimize_to_tray" in novas_configuracoes:
             config["minimize_to_tray"] = bool(novas_configuracoes["minimize_to_tray"])
+        if "autotype_press_enter" in novas_configuracoes:
+            config["autotype_press_enter"] = bool(novas_configuracoes["autotype_press_enter"])
+        if "autotype_delay_ms" in novas_configuracoes:
+            try:
+                config["autotype_delay_ms"] = max(200, min(3000, int(novas_configuracoes["autotype_delay_ms"])))
+            except (ValueError, TypeError):
+                pass
 
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     temp_path = f"{path}.tmp"
@@ -732,4 +749,52 @@ def salvar_configuracoes(novas_configuracoes: dict, settings_path: str | None = 
     os.replace(temp_path, path)
 
     return config
+
+
+def executar_autotype(
+    usuario: str,
+    senha: str,
+    press_enter: bool = True,
+    delay_ms: int = 500,
+    keyboard_controller: Any | None = None,
+) -> bool:
+    """
+    Simula a digitação segura do usuário e senha em primeiro plano no aplicativo ativo.
+    Usa pynput.keyboard.Controller ou mock injetado para testes unitários isolados.
+    """
+    import time
+    if keyboard_controller is None:
+        try:
+            from pynput.keyboard import Controller, Key
+            kb = Controller()
+        except Exception:
+            return False
+    else:
+        from pynput.keyboard import Key
+        kb = keyboard_controller
+
+    # Atraso de foco para garantir que a janela de destino esteja ativa
+    if delay_ms > 0:
+        time.sleep(max(0.05, delay_ms / 1000.0))
+
+    try:
+        if usuario:
+            kb.type(usuario)
+            time.sleep(0.05)
+
+        if usuario and senha:
+            kb.tap(Key.tab)
+            time.sleep(0.05)
+
+        if senha:
+            kb.type(senha)
+            time.sleep(0.05)
+
+        if press_enter:
+            kb.tap(Key.enter)
+
+        return True
+    except Exception:
+        return False
+
 
