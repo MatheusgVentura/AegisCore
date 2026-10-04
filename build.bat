@@ -12,7 +12,7 @@ if exist "build" rd /s /q "build"
 if exist "dist\AegisCore" rd /s /q "dist\AegisCore"
 
 echo [2/3] Compilando AegisCore com PyInstaller...
-python -m PyInstaller --name "AegisCore" --noconsole --icon "aegiscore.ico" --add-data "ui;ui" --add-data "aegiscore.ico;." --clean --noconfirm app.py
+python -m PyInstaller --clean --noconfirm AegisCore.spec
 
 if errorlevel 1 (
     echo [ERRO] Falha ao compilar com o PyInstaller.
@@ -22,6 +22,7 @@ if errorlevel 1 (
 
 echo [3/3] Criando arquivo portatil zip em dist\...
 powershell -Command "Compress-Archive -Path 'dist\AegisCore\*' -DestinationPath 'dist\AegisCore-Portable.zip' -Force"
+powershell -Command "Copy-Item 'dist\AegisCore-Portable.zip' 'dist\AegisCore-v1.2.0-Portable-Windows.zip' -Force"
 
 echo.
 echo ======================================================
