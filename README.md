@@ -62,15 +62,19 @@ AegisCore's security posture strictly obeys **Kerckhoffs's Principle**: security
 
 ## ✨ Features
 
+- **Universal Auto-Type (`Ctrl + Alt + V`):** Automatically type credentials directly into any browser or Windows application with safety delays and optional automatic form submission.
+- **System Tray Integration:** Daemonize into Windows notification area with a quick-access tactical menu (unlock, tactical lock, quick password generation, and minimize-on-close).
+- **Proactive Inactivity Auto-Lock:** Configurable idle timer (1, 5, 15, 30, 60 min) that sanitizes RAM keys and clipboard buffer if your workstation is unattended.
+- **Diceware Passphrase Generator:** Generate highly memorable and cryptographically strong passphrases with Portuguese dictionary support and live entropy scoring.
 - **Integrated 2FA / TOTP Authenticator:** Generates RFC 6238 compliant 6-digit tokens with real-time 30s countdown and 1-click clipboard copy on credential cards.
 - **Vault Health & Security Audit Dashboard:** Analytical dashboard evaluating vault resilience (0-100%), identifying low-entropy passwords, reused credentials, and multi-factor authentication (2FA) coverage with direct corrective actions.
 - **Seamless CSV Import & Export:** Effortlessly migrate credentials from Chrome, Edge, Brave, Bitwarden, and KeePassXC with intelligent field auto-detection.
+- **Settings HUD & Atomic Persistence:** System preferences dashboard backed by atomic `settings.json` disk writes.
 - **Smart Logo Auto-Detection:** Automatically matches brand icons for hundreds of services (GitHub, AWS, Google, ProtonMail, OpenAI, Discord, Steam, Microsoft, Brazilian banks, etc.).
 - **Quick Browser Launch (↗️):** Direct action buttons on credential cards to open login portals securely in your default browser.
 - **Drag-and-Drop Reordering:** Organize entries manually with intuitive drag-and-drop mechanics preserved securely on disk.
 - **1-Click Favorites:** Star high-priority accounts for instant filtering.
 - **Instant Search (`Ctrl + K`):** Real-time multi-attribute search across services, usernames, or custom notes.
-- **Advanced Password Generator:** Custom character sets and length sliders with Shannon entropy calculation (bits and rating).
 - **100% Offline & Private:** Zero network requests, zero telemetry.
 
 ---

@@ -16,61 +16,41 @@ Este documento consolida a visão de futuro, arquitetura técnica e o cronograma
 
 ---
 
-## 📦 Versão 1.1.0 — Super App de Segurança & Migração (Versão Atual)
+## 📦 Versão 1.2.0 — Operação Tática, Atalhos & Bandeja (Versão Atual)
 
 ### 🎯 Objetivos
-Elevar o AegisCore de um gerenciador de credenciais básico para um cofre multifuncional com suporte nativo a segundo fator e análise proativa de riscos.
+Agilizar a operação diária no Windows eliminando atrito ao fazer login em programas, navegadores e jogos, oferecendo background daemon com auto-bloqueio proativo e persistência atômica de preferências.
 
-### 🧩 Funcionalidades
-1. **Autenticador 2FA / TOTP Integrado (RFC 6238 / RFC 4226)**
-   - Armazenamento de chaves secretas Base32 e URIs `otpauth://totp/...`.
-   - Geração de tokens de 6 dígitos em tempo real com contador regressivo de 30 segundos.
-   - Cópia do token com 1 clique diretamente pelo card da credencial.
-   - Implementação nativa com Python puro (`hashlib`, `hmac`, `struct`) — zero dependências externas.
+### 🧩 Funcionalidades Entregues
+1. **Auto-Type Global & Local (Preenchimento Universal por Atalho)**
+   - Atalho global de teclado (`Ctrl + Alt + V`) via `pynput` em qualquer aplicativo do Windows.
+   - Botão tático de Auto-Type em cada card de credencial no Web HUD.
+   - Minimização instantânea para devolução do foco à janela anterior e simulação sequencial: `Usuário` ➔ `[Tab]` ➔ `Senha` ➔ `[Enter]`.
+   - Preferências configuráveis para envio de `Enter` e delay de foco (300ms a 1500ms).
 
-2. **Central de Saúde do Cofre (Security Audit & Health HUD)**
-   - Painel tático com métricas de blindagem e pontuação geral de segurança (0 a 100%).
-   - Detecção automática de **Senhas Fracas** (baseado na Entropia de Shannon).
-   - Detecção de **Senhas Reutilizadas** em múltiplos serviços (risco crítico de vazamento em cascata).
-   - Filtros instantâneos para visualizar e corrigir credenciais vulneráveis com 1 clique.
+2. **Ícone e Menu na Bandeja do Sistema (System Tray Icon)**
+   - Ícone do escudo AegisCore no relógio do Windows gerenciado via `pystray`.
+   - Minimização inteligente para segundo plano ao clicar no botão Fechar [X].
+   - Menu de contexto com ações rápidas: *Abrir AegisCore, Auto-Type (Ctrl+Alt+V), Bloquear Cofre, Gerar Senha Rápida, Sair*.
 
-3. **Importação e Exportação de Credenciais (CSV)**
-   - **Importador Inteligente:** Reconhece e mapeia automaticamente formatos do Google Chrome, Brave, Microsoft Edge, Bitwarden e KeePassXC.
-   - **Exportador Seguro:** Exportação em formato CSV padronizado para backup portátil.
-   - Suporte a seleção de arquivos e processamento direto no cofre.
+3. **Auto-Bloqueio por Inatividade (Inactivity Auto-Lock)**
+   - Temporizador de inatividade configurável (1, 5, 15, 30, 60 min ou desativado).
+   - Detecção reativa de eventos do usuário com throttling e higienização imediata da memória RAM e área de transferência.
+   - Banner tático na tela de desbloqueio informando o auto-bloqueio preventivo.
 
-4. **Nova Identidade Visual & Design System v1.1.0**
-   - **Nova Logo do Escudo:** Escudo geométrico com nós entrelaçados em ouro escovado (substituindo a antiga Medusa).
-   - **Paleta Ouro Nobre Escuro:** Fundo Obsidian Warm (`#0c0a07`), cards (`#15120c`), botões e detalhes em ouro escovado nobre (`#c5a038`).
-   - **Nova Tipografia High-Tech:** `Orbitron` (800 Bold) + `Michroma` com suporte a execução 100% offline via fontes locais em `ui/fonts/`.
-   - **Filtros de Tópicos Minimalistas:** Pílulas sem emojis com ícones lineares vetoriais SVG (estrelas, chaves, avisos, setas e escudos).
-   - **Pacote Multi-Resolução do Windows:** Ícone `.ico` gerado com suporte nativo de 16x16 até 256x256 para barra de tarefas e instalador.
+4. **Gerador de Frases-Senha (Passphrases estilo Diceware)**
+   - Dicionário curado de 536 palavras em português (`DICEWARE_WORDS`).
+   - Abas no modal de geração ("Senha Aleatória" vs "Frase-Senha (Diceware)").
+   - Controles dinâmicos de quantidade de palavras (3 a 7), separador customizado, capitalização e número de sufixo.
+   - Cálculo de entropia matemática em tempo real baseado no espaço amostral do dicionário.
+
+5. **Central de Preferências do Sistema (Settings HUD)**
+   - Modal de configurações com design Desert Gold para auto-bloqueio, limpeza de clipboard, bandeja e auto-type.
+   - Engine atômica de persistência (`settings.json`).
 
 ---
 
-## ⚡ Versão 1.2.0 — Operação Tática & Atalho Global (Planejado)
-
-### 🎯 Objetivos
-Agilizar o uso diário no Windows eliminando atrito ao fazer login em programas, navegadores e jogos.
-
-### 🧩 Funcionalidades
-1. **Auto-Type Global (Preenchimento Universal por Atalho)**
-   - Atalho global de teclado configurável (ex: `Ctrl + Alt + V`).
-   - O AegisCore detecta a janela em foco ativa no Windows.
-   - Simula a sequência automática de digitação: `Usuário` ➔ `[Tab]` ➔ `Senha` ➔ `[Enter]`.
-   - **Vantagem:** Funciona em qualquer navegador e programas desktop (Steam, Discord, Spotify, etc.) sem precisar de extensão.
-
-2. **Minimizar para a Bandeja do Sistema (System Tray)**
-   - Ícone do escudo AegisCore perto do relógio do Windows (`pystray`).
-   - Fechar a janela oculta o app sem encerrar o processo.
-   - Menu de contexto rápido: *Bloquear Cofre, Gerar Senha Rápida, Abrir Cofre, Sair*.
-
-3. **Auto-Bloqueio por Inatividade (Inactivity Auto-Lock)**
-   - Temporizador de segurança configurável (ex: 5 min, 15 min, 30 min sem interação).
-   - Higienização imediata das chaves criptográficas da memória RAM e retorno à tela de bloqueio.
-
-4. **Gerador de Frases-Senha (Passphrases / Estilo Diceware / XKCD)**
-   - Geração de combinações de palavras seguras e memoráveis (ex: `deserto-pantera-safira-42`).
+## 📦 Versão 1.1.0 — Super App de Segurança & Migração (Versão Anterior)
 
 ---
 
