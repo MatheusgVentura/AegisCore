@@ -669,12 +669,13 @@ def exportar_csv(cofre: list[dict]) -> str:
 DEFAULT_SETTINGS = {
     "auto_lock_minutes": 5,
     "clipboard_clear_seconds": 15,
+    "minimize_to_tray": True,
 }
 
 
 def carregar_configuracoes(settings_path: str | None = None) -> dict:
     """
-    Carrega as preferências locais do usuário (auto-bloqueio, clipboard, etc.).
+    Carrega as preferências locais do usuário (auto-bloqueio, clipboard, bandeja, etc.).
     Retorna os padrões seguros caso o arquivo não exista ou ocorra erro de leitura.
     """
     path = settings_path or SETTINGS_FILE
@@ -695,6 +696,8 @@ def carregar_configuracoes(settings_path: str | None = None) -> dict:
                             config["clipboard_clear_seconds"] = max(5, int(dados["clipboard_clear_seconds"]))
                         except (ValueError, TypeError):
                             pass
+                    if "minimize_to_tray" in dados:
+                        config["minimize_to_tray"] = bool(dados["minimize_to_tray"])
         except Exception:
             pass
 
@@ -719,6 +722,8 @@ def salvar_configuracoes(novas_configuracoes: dict, settings_path: str | None = 
                 config["clipboard_clear_seconds"] = max(5, int(novas_configuracoes["clipboard_clear_seconds"]))
             except (ValueError, TypeError):
                 pass
+        if "minimize_to_tray" in novas_configuracoes:
+            config["minimize_to_tray"] = bool(novas_configuracoes["minimize_to_tray"])
 
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     temp_path = f"{path}.tmp"

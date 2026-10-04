@@ -1,8 +1,9 @@
 import os
 import tempfile
+from unittest.mock import MagicMock
 import pytest
 import vault_core
-from app import VaultApi
+from app import VaultApi, TrayIconManager
 
 
 @pytest.fixture(autouse=True)
@@ -270,5 +271,55 @@ def test_vault_api_generate_passphrase():
     assert "entropy" in res
     assert len(res["passphrase"].split("-")) == 5
     assert res["entropy"]["bits"] > 40
+
+
+def test_settings_minimize_to_tray_persistence():
+    cfg = vault_core.carregar_configuracoes()
+    assert cfg["minimize_to_tray"] is True
+
+    salvo = vault_core.salvar_configuracoes({"minimize_to_tray": False})
+    assert salvo["minimize_to_tray"] is False
+
+    reloaded = vault_core.carregar_configuracoes()
+    assert reloaded["minimize_to_tray"] is False
+
+
+def test_tray_icon_manager_actions_and_closing():
+    api = VaultApi()
+    api.lock_vault = MagicMock(return_value={"success": True})
+    api.copy_to_clipboard = MagicMock(return_value={"success": True, "timeout": 15})
+
+    mock_window = MagicMock()
+    tray = TrayIconManager(api=api, window=mock_window, icon_path="aegiscore.ico")
+    tray.notify = MagicMock()
+
+    # 1. Testar restauração de janela
+    tray.show_window()
+    mock_window.show.assert_called_once()
+    mock_window.restore.assert_called_once()
+
+    # 2. Testar bloqueio tático via tray
+    tray.lock_vault()
+    api.lock_vault.assert_called_once()
+    mock_window.evaluate_js.assert_called_once()
+
+    # 3. Testar geração rápida de senha
+    tray.quick_password()
+    api.copy_to_clipboard.assert_called_once()
+
+    # 4. Testar on_closing com minimize_to_tray=True (deve esconder janela e retornar False para não fechar processo)
+    vault_core.salvar_configuracoes({"minimize_to_tray": True})
+    mock_window.hide.reset_mock()
+    res_closing_true = tray.on_closing()
+    assert res_closing_true is False
+    mock_window.hide.assert_called_once()
+
+    # 5. Testar on_closing com minimize_to_tray=False (deve fechar aplicação e retornar True)
+    vault_core.salvar_configuracoes({"minimize_to_tray": False})
+    res_closing_false = tray.on_closing()
+    assert res_closing_false is True
+    assert tray.is_exiting is True
+    mock_window.destroy.assert_called_once()
+
 
 

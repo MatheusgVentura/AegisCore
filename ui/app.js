@@ -12,6 +12,7 @@ let state = {
   settings: {
     auto_lock_minutes: 5,
     clipboard_clear_seconds: 15,
+    minimize_to_tray: true,
   },
   generatorMode: 'password',
   inactivityTimer: null,
@@ -425,6 +426,9 @@ async function handleLock(isAutoLock = false) {
 
   document.getElementById('input-unlock-pass').focus();
 }
+
+// Expõe para sincronização pelo Tray Manager
+window.handleLock = handleLock;
 
 function showDashboard() {
   document.getElementById('auth-view').style.display = 'none';
@@ -1638,12 +1642,16 @@ function openSettingsModal() {
   const modal = document.getElementById('modal-settings');
   const selAutoLock = document.getElementById('setting-auto-lock');
   const selClipboard = document.getElementById('setting-clipboard-clear');
+  const chkMinimizeTray = document.getElementById('setting-minimize-tray');
 
   if (selAutoLock) {
     selAutoLock.value = String(state.settings?.auto_lock_minutes ?? 5);
   }
   if (selClipboard) {
     selClipboard.value = String(state.settings?.clipboard_clear_seconds ?? 15);
+  }
+  if (chkMinimizeTray) {
+    chkMinimizeTray.checked = state.settings?.minimize_to_tray !== false;
   }
   if (modal) modal.classList.add('active');
 }
@@ -1656,10 +1664,12 @@ function closeSettingsModal() {
 async function handleSaveSettings() {
   const selAutoLock = document.getElementById('setting-auto-lock');
   const selClipboard = document.getElementById('setting-clipboard-clear');
+  const chkMinimizeTray = document.getElementById('setting-minimize-tray');
 
   const newSettings = {
     auto_lock_minutes: parseInt(selAutoLock.value, 10),
     clipboard_clear_seconds: parseInt(selClipboard.value, 10),
+    minimize_to_tray: chkMinimizeTray ? chkMinimizeTray.checked : true,
   };
 
   try {

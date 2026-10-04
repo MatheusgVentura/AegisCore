@@ -13,6 +13,8 @@ from datetime import datetime
 import pyperclip
 import webview
 from cryptography.exceptions import InvalidTag
+import pystray
+from PIL import Image
 
 import vault_core
 
@@ -421,6 +423,134 @@ class VaultApi:
             return {"success": False, "error": f"Erro ao salvar arquivo: {str(e)}"}
 
 
+
+class TrayIconManager:
+    """Gerencia o ícone da bandeja do sistema (System Tray) e menu de acesso tático rápido."""
+
+    def __init__(self, api: VaultApi, window: webview.Window, icon_path: str):
+        self.api = api
+        self.window = window
+        self.icon_path = icon_path
+        self.icon: pystray.Icon | None = None
+        self.is_exiting = False
+
+    def _create_image(self) -> Image.Image:
+        """Carrega o ícone oficial ou cria fallback na memória se não encontrado."""
+        if os.path.exists(self.icon_path):
+            try:
+                return Image.open(self.icon_path)
+            except Exception:
+                pass
+        return Image.new("RGBA", (64, 64), color=(12, 11, 8, 255))
+
+    def notify(self, message: str, title: str = "AegisCore"):
+        """Dispara uma notificação do sistema via bandeja."""
+        if self.icon:
+            try:
+                self.icon.notify(message, title)
+            except Exception:
+                pass
+
+    def show_window(self, icon=None, item=None):
+        """Restaura e traz para o primeiro plano a janela do AegisCore."""
+        try:
+            self.window.show()
+            self.window.restore()
+        except Exception:
+            pass
+
+    def lock_vault(self, icon=None, item=None):
+        """Tranca o cofre imediatamente, higieniza a RAM e reflete na interface visual."""
+        try:
+            self.api.lock_vault()
+            self.window.evaluate_js("if (window.handleLock) window.handleLock();")
+            self.notify(
+                "Cofre trancado e credenciais higienizadas da memória.",
+                "AegisCore — Bloqueado",
+            )
+        except Exception:
+            pass
+
+    def quick_password(self, icon=None, item=None):
+        """Gera uma senha forte e copia diretamente com expiração de clipboard."""
+        try:
+            pwd = vault_core.gerar_senha_forte(
+                tamanho=18,
+                usar_maiusculas=True,
+                usar_minusculas=True,
+                usar_numeros=True,
+                usar_simbolos=True,
+            )
+            self.api.copy_to_clipboard(pwd, is_sensitive=True)
+            self.notify(
+                "Senha tática de 18 caracteres gerada e copiada para a área de transferência.",
+                "AegisCore — Senha Rápida",
+            )
+        except Exception:
+            pass
+
+    def exit_app(self, icon=None, item=None):
+        """Finaliza a aplicação, higieniza a sessão e encerra a bandeja e a janela."""
+        self.is_exiting = True
+        try:
+            self.api.lock_vault()
+        except Exception:
+            pass
+        if self.icon:
+            try:
+                self.icon.stop()
+            except Exception:
+                pass
+        try:
+            self.window.destroy()
+        except Exception:
+            pass
+
+    def on_closing(self, *args, **kwargs) -> bool:
+        """
+        Intercepta o evento de fechamento da janela.
+        Se minimize_to_tray estiver ativado, esconde a janela e cancela o encerramento do processo.
+        """
+        if self.is_exiting:
+            return True
+
+        settings = vault_core.carregar_configuracoes()
+        if settings.get("minimize_to_tray", True):
+            try:
+                self.window.hide()
+                self.notify(
+                    "AegisCore continua protegido em segundo plano na bandeja do sistema.",
+                    "AegisCore Minimizado",
+                )
+            except Exception:
+                pass
+            return False
+
+        self.exit_app()
+        return True
+
+    def start(self):
+        """Inicia o ícone da bandeja em segundo plano."""
+        image = self._create_image()
+        menu = pystray.Menu(
+            pystray.MenuItem("Abrir AegisCore", self.show_window, default=True),
+            pystray.MenuItem("Bloquear Cofre", self.lock_vault),
+            pystray.MenuItem("Gerar Senha Rápida", self.quick_password),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Sair do AegisCore", self.exit_app),
+        )
+        self.icon = pystray.Icon("AegisCore", image, "AegisCore — Password Vault", menu=menu)
+        self.icon.run_detached()
+
+    def stop(self):
+        """Para o ícone da bandeja se ativo."""
+        if self.icon:
+            try:
+                self.icon.stop()
+            except Exception:
+                pass
+
+
 def get_resource_path(relative_path: str) -> str:
     """Obtém o caminho absoluto para recursos, funcionando em dev e empacotado pelo PyInstaller."""
     base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
@@ -431,7 +561,7 @@ def main():
     if sys.platform == "win32":
         try:
             import ctypes
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("aegiscore.vault.app.1.1")
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("aegiscore.vault.app.1.2")
         except Exception:
             pass
 
@@ -452,7 +582,14 @@ def main():
     )
     api.set_window(window)
 
-    webview.start(debug=False, icon=icon_path if os.path.exists(icon_path) else None)
+    tray_mgr = TrayIconManager(api, window, icon_path)
+    window.events.closing += tray_mgr.on_closing
+    tray_mgr.start()
+
+    try:
+        webview.start(debug=False, icon=icon_path if os.path.exists(icon_path) else None)
+    finally:
+        tray_mgr.stop()
 
 
 if __name__ == "__main__":

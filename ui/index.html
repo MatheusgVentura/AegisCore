@@ -646,7 +646,7 @@
         </div>
 
         <!-- Configuração: Limpeza Clipboard -->
-        <div class="form-field" style="margin-bottom: 24px;">
+        <div class="form-field" style="margin-bottom: 20px;">
           <label class="field-label" style="display: flex; align-items: center; justify-content: space-between;">
             <span>Limpeza da Área de Transferência</span>
             <span class="badge-tag" style="background: rgba(184, 145, 83, 0.15); color: var(--gold-primary); font-size: 10px; padding: 2px 6px; border-radius: 4px;">Privacidade</span>
@@ -659,6 +659,21 @@
           </select>
           <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 5px;">
             Tempo decorrido até que senhas copiadas sejam totalmente apagadas da memória do sistema.
+          </span>
+        </div>
+
+        <!-- Configuração: Minimizar para Bandeja -->
+        <div class="form-field" style="margin-bottom: 24px;">
+          <label class="field-label" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Bandeja do Sistema (System Tray)</span>
+            <span class="badge-tag" style="background: rgba(184, 145, 83, 0.15); color: var(--gold-primary); font-size: 10px; padding: 2px 6px; border-radius: 4px;">Desktop</span>
+          </label>
+          <label class="checkbox-label" style="margin-top: 6px;">
+            <input type="checkbox" id="setting-minimize-tray" checked>
+            Minimizar para a bandeja ao fechar a janela
+          </label>
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 5px;">
+            Mantém o AegisCore ativo em segundo plano no relógio do Windows ao clicar no X. O menu de contexto na bandeja permite reabrir, bloquear ou sair definitivamente.
           </span>
         </div>
 
