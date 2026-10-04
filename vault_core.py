@@ -60,6 +60,7 @@ def get_data_dir() -> str:
 BASE_DIR = get_data_dir()
 VAULT_FILE = os.path.join(BASE_DIR, "vault.enc")
 BACKUP_FILE = os.path.join(BASE_DIR, "vault.enc.bak")
+SETTINGS_FILE = os.path.join(BASE_DIR, "settings.json")
 
 
 def derivar_chave(senha_mestra: str, salt: bytes) -> bytes:
@@ -558,4 +559,67 @@ def exportar_csv(cofre: list[dict]) -> str:
         ])
 
     return output.getvalue()
+
+
+DEFAULT_SETTINGS = {
+    "auto_lock_minutes": 5,
+    "clipboard_clear_seconds": 15,
+}
+
+
+def carregar_configuracoes(settings_path: str | None = None) -> dict:
+    """
+    Carrega as preferências locais do usuário (auto-bloqueio, clipboard, etc.).
+    Retorna os padrões seguros caso o arquivo não exista ou ocorra erro de leitura.
+    """
+    path = settings_path or SETTINGS_FILE
+    config = dict(DEFAULT_SETTINGS)
+
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                dados = json.load(f)
+                if isinstance(dados, dict):
+                    if "auto_lock_minutes" in dados:
+                        try:
+                            config["auto_lock_minutes"] = max(0, int(dados["auto_lock_minutes"]))
+                        except (ValueError, TypeError):
+                            pass
+                    if "clipboard_clear_seconds" in dados:
+                        try:
+                            config["clipboard_clear_seconds"] = max(5, int(dados["clipboard_clear_seconds"]))
+                        except (ValueError, TypeError):
+                            pass
+        except Exception:
+            pass
+
+    return config
+
+
+def salvar_configuracoes(novas_configuracoes: dict, settings_path: str | None = None) -> dict:
+    """
+    Salva as preferências do usuário de forma atômica no arquivo settings.json.
+    """
+    path = settings_path or SETTINGS_FILE
+    config = carregar_configuracoes(path)
+
+    if isinstance(novas_configuracoes, dict):
+        if "auto_lock_minutes" in novas_configuracoes:
+            try:
+                config["auto_lock_minutes"] = max(0, int(novas_configuracoes["auto_lock_minutes"]))
+            except (ValueError, TypeError):
+                pass
+        if "clipboard_clear_seconds" in novas_configuracoes:
+            try:
+                config["clipboard_clear_seconds"] = max(5, int(novas_configuracoes["clipboard_clear_seconds"]))
+            except (ValueError, TypeError):
+                pass
+
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    temp_path = f"{path}.tmp"
+    with open(temp_path, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+    os.replace(temp_path, path)
+
+    return config
 

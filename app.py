@@ -84,6 +84,13 @@ class VaultApi:
         if self._clipboard_timer:
             self._clipboard_timer.cancel()
             self._clipboard_timer = None
+        if self._last_copied_sensitive:
+            try:
+                if pyperclip.paste() == self._last_copied_sensitive:
+                    pyperclip.copy("")
+            except Exception:
+                pass
+            self._last_copied_sensitive = ""
         return {"success": True}
 
     def save_entry(self, entry_data: dict) -> dict:
@@ -240,7 +247,7 @@ class VaultApi:
         return vault_core.calcular_entropia(pwd)
 
     def copy_to_clipboard(self, text: str, is_sensitive: bool = True) -> dict:
-        """Copia para o clipboard e inicia timer de higienização de 15 segundos se for sensível."""
+        """Copia para o clipboard e inicia timer de higienização configurável se for sensível."""
         try:
             pyperclip.copy(text)
         except Exception as e:
@@ -251,18 +258,36 @@ class VaultApi:
             if self._clipboard_timer:
                 self._clipboard_timer.cancel()
 
+            cfg = vault_core.carregar_configuracoes()
+            timeout_sec = float(cfg.get("clipboard_clear_seconds", 15))
+
             def limpar():
                 try:
                     if pyperclip.paste() == self._last_copied_sensitive:
                         pyperclip.copy("")
                 except Exception:
                     pass
+                self._last_copied_sensitive = ""
 
-            self._clipboard_timer = threading.Timer(15.0, limpar)
+            self._clipboard_timer = threading.Timer(timeout_sec, limpar)
             self._clipboard_timer.daemon = True
             self._clipboard_timer.start()
 
-        return {"success": True, "timeout": 15}
+            return {"success": True, "timeout": int(timeout_sec)}
+
+        return {"success": True, "timeout": 0}
+
+    def get_settings(self) -> dict:
+        """Retorna as preferências configuradas no aplicativo."""
+        return vault_core.carregar_configuracoes()
+
+    def update_settings(self, settings: dict) -> dict:
+        """Atualiza e persiste as preferências do usuário no disco."""
+        try:
+            saved = vault_core.salvar_configuracoes(settings)
+            return {"success": True, "settings": saved}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     def get_totp_token(self, secret: str) -> dict:
         """Gera código TOTP para um segredo individual."""

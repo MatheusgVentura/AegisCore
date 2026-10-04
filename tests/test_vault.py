@@ -14,6 +14,7 @@ def isolate_vault_for_tests(monkeypatch, tmp_path):
     monkeypatch.setattr(vault_core, "BASE_DIR", str(temp_dir))
     monkeypatch.setattr(vault_core, "VAULT_FILE", str(temp_vault))
     monkeypatch.setattr(vault_core, "BACKUP_FILE", str(temp_vault) + ".bak")
+    monkeypatch.setattr(vault_core, "SETTINGS_FILE", str(temp_dir / "settings.json"))
 
 
 def test_derivar_chave_argon2id():
@@ -173,5 +174,52 @@ def test_analisar_saude_cofre_calibragem_cenario_usuario():
     # Verifica calibração entre 65 e 75
     assert 65 <= h["score"] <= 75
     assert "Status:" in h["status_seguranca"]
+
+
+def test_settings_load_save(tmp_path):
+    # Padrões quando não existe arquivo
+    settings_file = str(tmp_path / "custom_settings.json")
+    cfg = vault_core.carregar_configuracoes(settings_file)
+    assert cfg["auto_lock_minutes"] == 5
+    assert cfg["clipboard_clear_seconds"] == 15
+
+    # Salva novas configurações
+    salvo = vault_core.salvar_configuracoes(
+        {"auto_lock_minutes": 15, "clipboard_clear_seconds": 30},
+        settings_path=settings_file,
+    )
+    assert salvo["auto_lock_minutes"] == 15
+    assert salvo["clipboard_clear_seconds"] == 30
+
+    # Recarrega do disco para confirmar persistência atômica
+    recarregado = vault_core.carregar_configuracoes(settings_file)
+    assert recarregado["auto_lock_minutes"] == 15
+    assert recarregado["clipboard_clear_seconds"] == 30
+
+
+def test_vault_api_settings_and_lock_clears_clipboard(monkeypatch):
+    import pyperclip
+
+    api = VaultApi()
+    # Verifica leitura e atualização de settings via API
+    settings = api.get_settings()
+    assert "auto_lock_minutes" in settings
+
+    res = api.update_settings({"auto_lock_minutes": 1, "clipboard_clear_seconds": 10})
+    assert res["success"] is True
+    assert res["settings"]["auto_lock_minutes"] == 1
+
+    # Testa cópia sensível e limpeza na tranca do cofre
+    copy_res = api.copy_to_clipboard("SensitivePasswordToWipe!", is_sensitive=True)
+    assert copy_res["success"] is True
+    assert copy_res["timeout"] == 10
+    assert pyperclip.paste() == "SensitivePasswordToWipe!"
+
+    # Ao bloquear o cofre, o clipboard e os buffers de RAM devem ser higienizados
+    lock_res = api.lock_vault()
+    assert lock_res["success"] is True
+    assert pyperclip.paste() == ""
+    assert api._chave == b""
+    assert api._cofre == []
 
 
