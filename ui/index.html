@@ -429,7 +429,7 @@
     </div>
   </div>
 
-  <!-- Modal: Gerador de Senhas -->
+  <!-- Modal: Gerador de Senhas e Frases-Senha -->
   <div class="modal-backdrop" id="modal-gen">
     <div class="modal-content">
       <div class="modal-header-row">
@@ -437,6 +437,12 @@
         <button class="btn-icon-btn" id="btn-close-gen-modal">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
+      </div>
+
+      <!-- Abas de Modo -->
+      <div class="io-tabs" style="margin-bottom: 16px;">
+        <button type="button" class="io-tab active" id="tab-gen-password">Senha Aleatória</button>
+        <button type="button" class="io-tab" id="tab-gen-passphrase">Frase-Senha (Diceware)</button>
       </div>
 
       <div class="form-field">
@@ -448,24 +454,62 @@
         </div>
       </div>
 
-      <div class="gen-controls-box">
-        <div class="slider-row">
-          <span style="font-size: 12px; color: var(--text-secondary);">Comprimento: <strong id="gen-length-val" style="color: var(--gold-primary);">24</strong></span>
-          <input type="range" id="gen-slider" min="8" max="64" value="24" style="width: 55%;">
-        </div>
+      <!-- Painel: Senha Aleatória -->
+      <div id="gen-panel-password">
+        <div class="gen-controls-box">
+          <div class="slider-row">
+            <span style="font-size: 12px; color: var(--text-secondary);">Comprimento: <strong id="gen-length-val" style="color: var(--gold-primary);">24</strong></span>
+            <input type="range" id="gen-slider" min="8" max="64" value="24" style="width: 55%;">
+          </div>
 
-        <div class="checkboxes-grid">
-          <label class="checkbox-label">
-            <input type="checkbox" id="gen-upper" checked> Maiúsculas (A-Z)
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="gen-lower" checked> Minúsculas (a-z)
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="gen-digits" checked> Números (0-9)
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="gen-symbols" checked> Símbolos (!@#$)
+          <div class="checkboxes-grid">
+            <label class="checkbox-label">
+              <input type="checkbox" id="gen-upper" checked> Maiúsculas (A-Z)
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="gen-lower" checked> Minúsculas (a-z)
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="gen-digits" checked> Números (0-9)
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="gen-symbols" checked> Símbolos (!@#$)
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Painel: Frase-Senha (Diceware) -->
+      <div id="gen-panel-passphrase" style="display: none;">
+        <div class="gen-controls-box">
+          <div class="slider-row" style="margin-bottom: 12px;">
+            <span style="font-size: 12px; color: var(--text-secondary);">Palavras: <strong id="passphrase-words-val" style="color: var(--gold-primary);">4</strong></span>
+            <input type="range" id="passphrase-slider" min="3" max="7" value="4" style="width: 55%;">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <div class="form-field" style="margin-bottom: 0;">
+              <label class="field-label" style="font-size: 11px;">Separador</label>
+              <select id="passphrase-separator" class="input-styled select-styled" style="font-size: 12px; padding: 6px 10px;">
+                <option value="-" selected>Hífen (-)</option>
+                <option value=".">Ponto (.)</option>
+                <option value="_">Sublinhado (_)</option>
+                <option value=" ">Espaço ( )</option>
+                <option value="">Nenhum</option>
+              </select>
+            </div>
+            <div class="form-field" style="margin-bottom: 0;">
+              <label class="field-label" style="font-size: 11px;">Capitalização</label>
+              <select id="passphrase-case" class="input-styled select-styled" style="font-size: 12px; padding: 6px 10px;">
+                <option value="title" selected>Iniciais Maiúsculas</option>
+                <option value="lower">Todas Minúsculas</option>
+                <option value="upper">Todas Maiúsculas</option>
+              </select>
+            </div>
+          </div>
+
+          <label class="checkbox-label" style="margin-top: 4px;">
+            <input type="checkbox" id="passphrase-number" checked> Incluir número aleatório (ex: 42)
           </label>
         </div>
       </div>

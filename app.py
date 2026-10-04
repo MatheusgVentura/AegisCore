@@ -242,6 +242,23 @@ class VaultApi:
         entropy = vault_core.calcular_entropia(pwd)
         return {"password": pwd, "entropy": entropy}
 
+    def generate_passphrase(
+        self,
+        words_count: int = 4,
+        separator: str = "-",
+        capitalize: str = "title",
+        include_number: bool = True,
+    ) -> dict:
+        """Gera uma frase-senha memorável (Diceware) e calcula sua entropia."""
+        passphrase = vault_core.gerar_passphrase(
+            palavras_count=words_count,
+            separador=separator,
+            capitalizacao=capitalize,
+            incluir_numero=include_number,
+        )
+        entropy = vault_core.calcular_entropia_passphrase(words_count, include_number)
+        return {"passphrase": passphrase, "entropy": entropy}
+
     def calculate_entropy(self, pwd: str) -> dict:
         """Calcula a entropia da string informada."""
         return vault_core.calcular_entropia(pwd)

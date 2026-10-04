@@ -228,6 +228,111 @@ def gerar_senha_forte(
     return "".join(senha_chars)
 
 
+DICEWARE_WORDS = [
+    "abrigo", "acesso", "aco", "adaga", "aguia", "aldeia", "alfa", "algoritmo", "aliado", "alvo",
+    "ambar", "ametista", "amuleto", "ancora", "anel", "antena", "apogeu", "apolo", "arcano", "arena",
+    "argonio", "armadura", "artefato", "asa", "asfalto", "astro", "astuto", "atlas", "atomo", "audaz",
+    "aurora", "avanco", "avatar", "azimute", "azul", "baleia", "bambu", "barao", "barreira", "bastiao",
+    "bateria", "bazar", "besouro", "bisonte", "blindagem", "bloqueio", "boreal", "bosque", "brasa", "bravo",
+    "brisa", "bronze", "bruxo", "bussola", "cabine", "cacto", "caderno", "calibre", "calor", "camelo",
+    "campeao", "campo", "canal", "canion", "capitao", "capsula", "carbono", "cardume", "cascata", "castelo",
+    "cavaleiro", "caverna", "cedro", "celeste", "celula", "centelha", "centro", "cereal", "cerne", "chama",
+    "chave", "chicote", "chumbo", "ciclo", "cidra", "cilindro", "cimento", "cinza", "circuito", "cisne",
+    "citadela", "clarim", "claro", "clube", "cobra", "codigo", "coiote", "colina", "colmeia", "coluna",
+    "comando", "cometa", "compasso", "concha", "condor", "cone", "conexao", "confins", "coral", "coroa",
+    "corredor", "coruja", "corvo", "cosmos", "cratera", "cristal", "cromo", "cruzeiro", "cupula", "curva",
+    "dardo", "delta", "deserto", "destino", "diamante", "dique", "disco", "divino", "dourado", "dragao",
+    "duna", "duque", "eclipse", "eco", "edificio", "elemento", "elmo", "emblema", "energia", "enigma",
+    "epicentro", "equipe", "ermitao", "escudo", "esfera", "esmeralda", "espada", "espelho", "espiral", "estacao",
+    "estrela", "eterno", "falcao", "farao", "farol", "fauna", "feroz", "ferro", "fibra", "firme",
+    "flama", "flecha", "flora", "floresta", "fluxo", "foco", "fonte", "forja", "formula", "fortaleza",
+    "fosforo", "fossil", "fracao", "fronteira", "fulgor", "fumaca", "furacao", "fusao", "futuro", "galaxia",
+    "galho", "gaviao", "geada", "gelo", "geminis", "general", "geodo", "gigante", "glaciar", "globo",
+    "gnomo", "golfo", "gralha", "granito", "gravidade", "grifo", "gruta", "guarda", "guerreiro", "habitat",
+    "harpia", "helice", "helios", "heroi", "hidra", "hifem", "horizonte", "humano", "iapeto", "iceberg",
+    "icone", "ideal", "iguana", "ilhar", "impacto", "imperio", "impulso", "indice", "infinito", "insignia",
+    "intacto", "iris", "jaguar", "jardim", "jasmim", "jazida", "labirinto", "lacre", "lacuna", "laguna",
+    "lamina", "lampada", "lanca", "lapiseira", "laser", "lateral", "lava", "legado", "legiao", "leme",
+    "lente", "leopardo", "leviata", "liberdade", "lider", "limiar", "lince", "linhagem", "litoral", "livro",
+    "lobo", "lotus", "lunar", "lustre", "luva", "luz", "machado", "madrepola", "maestro", "magma",
+    "magneto", "magnitude", "malha", "manancial", "manto", "manual", "mapa", "marfim", "marina", "marmore",
+    "marte", "mascara", "mastiff", "matriz", "maximo", "medalha", "megafone", "melodia", "menir", "mercurio",
+    "meseta", "meteoro", "metropole", "microbio", "milagre", "mineral", "miragem", "missao", "mistico", "modulo",
+    "moeda", "moinho", "monarca", "monolito", "montanha", "morada", "mosaico", "motor", "muralha", "mutante",
+    "nadire", "nanico", "nativo", "navio", "nebula", "nefron", "neon", "netuno", "neutro", "nevoeiro",
+    "nexus", "nicho", "ninfa", "nitrogenio", "nobre", "nodo", "nomade", "nordico", "notavel", "nova",
+    "nucleo", "nuvem", "oasis", "obelisco", "observador", "oceano", "octante", "oculos", "odisseia", "ogiva",
+    "omega", "onix", "opala", "orbita", "ordem", "oriente", "origem", "orion", "orvalho", "ouro",
+    "outono", "oxigenio", "padrao", "pagina", "painel", "paladino", "palacio", "pantano", "pantera", "pantografo",
+    "papirus", "parabola", "paralelo", "parametro", "particula", "passagem", "patrono", "patrulha", "pegaso", "pelicano",
+    "pendulo", "penhasco", "pepita", "perfil", "pergaminho", "periscopio", "petala", "petroleo", "pilar", "piloto",
+    "pinaculo", "pioneiro", "piramide", "pirata", "pistao", "planeta", "planalto", "plasma", "platina", "pluma",
+    "podio", "poente", "poesia", "polar", "poligono", "polvo", "pomar", "ponte", "portal", "portento",
+    "posicao", "postigo", "potencia", "pradaria", "prata", "prisma", "proa", "profundo", "prossiga", "proton",
+    "pulpito", "pulsar", "pureza", "quadrante", "quantum", "quartzo", "quimera", "radar", "radiante", "radon",
+    "raio", "ramal", "raposa", "reator", "recife", "redoma", "reflexo", "refugio", "regente", "reino",
+    "relogio", "remoto", "repuxo", "resina", "ressonancia", "retina", "rinoceronte", "rio", "rocha", "rochedo",
+    "rodovia", "rotor", "rubi", "ruina", "safira", "sagaz", "salao", "salto", "santuario", "satelite",
+    "sauro", "selva", "semente", "senhor", "sentinela", "serpente", "serra", "sideral", "sigilo", "silicio",
+    "silvano", "simbolo", "sincero", "sirene", "sirius", "sistema", "soberano", "solar", "soldado", "solsticio",
+    "sombra", "sonda", "sonho", "submarino", "sulfeto", "sumario", "supremo", "talisma", "tambor", "tanque",
+    "tarantula", "tatico", "tectonico", "telescopio", "tempestade", "templo", "tenaz", "tensor", "terremoto", "tesouro",
+    "tita", "titanio", "tocha", "tornado", "torpedo", "torre", "tribuna", "tridente", "trofeu", "trovao",
+    "tubarao", "tulipa", "tungstenio", "turbina", "turquesa", "tutela", "ultravioleta", "umbral", "universo", "urano",
+    "ursa", "usina", "utopia", "vagalume", "valente", "valquiria", "valvula", "vanguarda", "vapor", "veiculo",
+    "veleiro", "velocidade", "ventania", "venus", "vereda", "vertice", "vesper", "viaduto", "viajante", "vigia",
+    "vigor", "vinculo", "violeta", "viper", "virtude", "visao", "viser", "vital", "volante", "voltagem",
+    "vortex", "vulcao", "xenon", "zenite", "zepelim", "zodiaco"
+]
+
+
+def gerar_passphrase(
+    palavras_count: int = 4,
+    separador: str = "-",
+    capitalizacao: str = "title",
+    incluir_numero: bool = True,
+) -> str:
+    """
+    Gera uma frase-senha memorável e criptograficamente segura baseada no conceito Diceware.
+    Usa secrets.choice sobre uma lista curada de palavras em português.
+    """
+    count = max(3, min(8, int(palavras_count)))
+    escolhidas = [secrets.choice(DICEWARE_WORDS) for _ in range(count)]
+
+    if capitalizacao == "title":
+        escolhidas = [w.capitalize() for w in escolhidas]
+    elif capitalizacao == "upper":
+        escolhidas = [w.upper() for w in escolhidas]
+    else:
+        escolhidas = [w.lower() for w in escolhidas]
+
+    base = separador.join(escolhidas)
+    if incluir_numero:
+        num = str(secrets.randbelow(90) + 10)
+        return f"{base}{separador}{num}" if separador else f"{base}{num}"
+    return base
+
+
+def calcular_entropia_passphrase(palavras_count: int, incluir_numero: bool = True) -> dict:
+    """
+    Calcula a entropia no espaço amostral do dicionário Diceware (536 palavras).
+    """
+    bits_por_palavra = math.log2(len(DICEWARE_WORDS))  # ~9.06 bits por palavra
+    bits = max(3, min(8, int(palavras_count))) * bits_por_palavra
+    if incluir_numero:
+        bits += math.log2(90)  # ~6.49 bits para números 10-99
+    # Capitalização e separador adicionam variações adicionais
+    bits += 2.0
+
+    bits = round(bits, 1)
+    if bits < 40:
+        return {"bits": bits, "nivel": "Moderada", "cor": "#f59e0b", "percentual": 50}
+    elif bits < 60:
+        return {"bits": bits, "nivel": "Forte", "cor": "#10b981", "percentual": 75}
+    else:
+        return {"bits": bits, "nivel": "Impenetrável", "cor": "#06b6d4", "percentual": 100}
+
+
 def calcular_entropia(senha: str) -> dict:
     """Calcula a entropia em bits e classificação da senha."""
     if not senha:

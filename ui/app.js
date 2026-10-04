@@ -13,6 +13,7 @@ let state = {
     auto_lock_minutes: 5,
     clipboard_clear_seconds: 15,
   },
+  generatorMode: 'password',
   inactivityTimer: null,
   lastActivityThrottle: 0,
 };
@@ -284,6 +285,13 @@ function setupEventListeners() {
 
   // Gerador Completo
   document.getElementById('btn-close-gen-modal').addEventListener('click', closeGenModal);
+
+  // Abas do Gerador
+  const tabGenPass = document.getElementById('tab-gen-password');
+  const tabGenPhrase = document.getElementById('tab-gen-passphrase');
+  if (tabGenPass) tabGenPass.addEventListener('click', () => switchGeneratorMode('password'));
+  if (tabGenPhrase) tabGenPhrase.addEventListener('click', () => switchGeneratorMode('passphrase'));
+
   document.getElementById('gen-slider').addEventListener('input', (e) => {
     document.getElementById('gen-length-val').innerText = e.target.value;
     refreshGeneratorDisplay();
@@ -291,6 +299,22 @@ function setupEventListeners() {
   ['gen-upper', 'gen-lower', 'gen-digits', 'gen-symbols'].forEach((id) => {
     document.getElementById(id).addEventListener('change', refreshGeneratorDisplay);
   });
+
+  // Controles de Frase-Senha (Diceware)
+  const passSlider = document.getElementById('passphrase-slider');
+  if (passSlider) {
+    passSlider.addEventListener('input', (e) => {
+      document.getElementById('passphrase-words-val').innerText = e.target.value;
+      refreshGeneratorDisplay();
+    });
+  }
+  ['passphrase-separator', 'passphrase-case'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', refreshGeneratorDisplay);
+  });
+  const passNumber = document.getElementById('passphrase-number');
+  if (passNumber) passNumber.addEventListener('change', refreshGeneratorDisplay);
+
   document.getElementById('btn-regen').addEventListener('click', refreshGeneratorDisplay);
   document.getElementById('btn-copy-generated').addEventListener('click', copyGeneratedPassword);
   document.getElementById('btn-use-generated').addEventListener('click', () => {
@@ -1060,27 +1084,81 @@ async function handleConfirmDelete() {
   }
 }
 
-// Gerador de Senhas
+// Gerador de Senhas e Frases-Senha
 async function openGenModal() {
   document.getElementById('modal-gen').classList.add('active');
-  await refreshGeneratorDisplay();
+  switchGeneratorMode(state.generatorMode || 'password');
 }
 
 function closeGenModal() {
   document.getElementById('modal-gen').classList.remove('active');
 }
 
-async function refreshGeneratorDisplay() {
-  const len = parseInt(document.getElementById('gen-slider').value, 10);
-  const upper = document.getElementById('gen-upper').checked;
-  const lower = document.getElementById('gen-lower').checked;
-  const digits = document.getElementById('gen-digits').checked;
-  const symbols = document.getElementById('gen-symbols').checked;
+function switchGeneratorMode(mode) {
+  state.generatorMode = mode;
+  const tabPass = document.getElementById('tab-gen-password');
+  const tabPhrase = document.getElementById('tab-gen-passphrase');
+  const panelPass = document.getElementById('gen-panel-password');
+  const panelPhrase = document.getElementById('gen-panel-passphrase');
+  const btnRegen = document.getElementById('btn-regen');
+  const btnUse = document.getElementById('btn-use-generated');
 
-  const res = await callApi('generate_password', len, upper, lower, digits, symbols);
-  if (res && res.password) {
-    document.getElementById('gen-display').value = res.password;
-    updateEntropyMeter(res.password, 'gen-meter-fill', 'gen-meter-label', 'gen-meter-bits');
+  if (mode === 'passphrase') {
+    if (tabPass) tabPass.classList.remove('active');
+    if (tabPhrase) tabPhrase.classList.add('active');
+    if (panelPass) panelPass.style.display = 'none';
+    if (panelPhrase) panelPhrase.style.display = 'block';
+    if (btnRegen) btnRegen.innerText = 'Nova frase';
+    if (btnUse) btnUse.innerText = 'Copiar frase';
+  } else {
+    if (tabPhrase) tabPhrase.classList.remove('active');
+    if (tabPass) tabPass.classList.add('active');
+    if (panelPhrase) panelPhrase.style.display = 'none';
+    if (panelPass) panelPass.style.display = 'block';
+    if (btnRegen) btnRegen.innerText = 'Nova senha';
+    if (btnUse) btnUse.innerText = 'Copiar senha';
+  }
+  refreshGeneratorDisplay();
+}
+
+async function refreshGeneratorDisplay() {
+  if (state.generatorMode === 'passphrase') {
+    const wordsCount = parseInt(document.getElementById('passphrase-slider').value, 10);
+    const separator = document.getElementById('passphrase-separator').value;
+    const capitalize = document.getElementById('passphrase-case').value;
+    const includeNumber = document.getElementById('passphrase-number').checked;
+
+    const res = await callApi('generate_passphrase', wordsCount, separator, capitalize, includeNumber);
+    if (res && res.passphrase) {
+      document.getElementById('gen-display').value = res.passphrase;
+      const ent = res.entropy;
+      const fill = document.getElementById('gen-meter-fill');
+      const label = document.getElementById('gen-meter-label');
+      const bits = document.getElementById('gen-meter-bits');
+      if (fill) {
+        fill.style.width = `${ent.percentual}%`;
+        fill.style.background = ent.cor;
+      }
+      if (label) {
+        label.innerText = `Força: ${ent.nivel}`;
+        label.style.color = ent.cor;
+      }
+      if (bits) {
+        bits.innerText = `${ent.bits} bits`;
+      }
+    }
+  } else {
+    const len = parseInt(document.getElementById('gen-slider').value, 10);
+    const upper = document.getElementById('gen-upper').checked;
+    const lower = document.getElementById('gen-lower').checked;
+    const digits = document.getElementById('gen-digits').checked;
+    const symbols = document.getElementById('gen-symbols').checked;
+
+    const res = await callApi('generate_password', len, upper, lower, digits, symbols);
+    if (res && res.password) {
+      document.getElementById('gen-display').value = res.password;
+      updateEntropyMeter(res.password, 'gen-meter-fill', 'gen-meter-label', 'gen-meter-bits');
+    }
   }
 }
 
@@ -1089,7 +1167,8 @@ async function copyGeneratedPassword() {
   if (!pass) return;
   const res = await callApi('copy_to_clipboard', pass, true);
   const timeout = (res && res.timeout) ? res.timeout : (state.settings?.clipboard_clear_seconds || 15);
-  triggerToast('Senha gerada copiada com segurança', timeout);
+  const msg = state.generatorMode === 'passphrase' ? 'Frase-senha copiada com segurança' : 'Senha gerada copiada com segurança';
+  triggerToast(msg, timeout);
 }
 
 // Medidor de Entropia

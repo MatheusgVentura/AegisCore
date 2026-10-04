@@ -223,3 +223,52 @@ def test_vault_api_settings_and_lock_clears_clipboard(monkeypatch):
     assert api._cofre == []
 
 
+def test_gerar_passphrase_diceware():
+    # 4 palavras com hífen, título e número
+    p1 = vault_core.gerar_passphrase(4, separador="-", capitalizacao="title", incluir_numero=True)
+    partes1 = p1.split("-")
+    assert len(partes1) == 5  # 4 palavras + 1 número no final
+    assert partes1[-1].isdigit()
+    for w in partes1[:-1]:
+        assert w.istitle()
+        assert w.lower() in vault_core.DICEWARE_WORDS
+
+    # 3 palavras minúsculas com ponto e sem número
+    p2 = vault_core.gerar_passphrase(3, separador=".", capitalizacao="lower", incluir_numero=False)
+    partes2 = p2.split(".")
+    assert len(partes2) == 3
+    for w in partes2:
+        assert w.islower()
+        assert w in vault_core.DICEWARE_WORDS
+
+    # 5 palavras maiúsculas com sublinhado e com número
+    p3 = vault_core.gerar_passphrase(5, separador="_", capitalizacao="upper", incluir_numero=True)
+    partes3 = p3.split("_")
+    assert len(partes3) == 6
+    assert partes3[-1].isdigit()
+    for w in partes3[:-1]:
+        assert w.isupper()
+        assert w.lower() in vault_core.DICEWARE_WORDS
+
+    # Limites mínimo e máximo de palavras
+    p_min = vault_core.gerar_passphrase(1, incluir_numero=False)  # deve restringir a 3
+    assert len(p_min.split("-")) == 3
+
+    p_max = vault_core.gerar_passphrase(20, incluir_numero=False)  # deve restringir a 8
+    assert len(p_max.split("-")) == 8
+
+    # Entropia calculada para passphrase
+    ent = vault_core.calcular_entropia_passphrase(4, incluir_numero=True)
+    assert ent["bits"] >= 40
+    assert ent["nivel"] in ["Forte", "Impenetrável"]
+
+
+def test_vault_api_generate_passphrase():
+    api = VaultApi()
+    res = api.generate_passphrase(words_count=4, separator="-", capitalize="title", include_number=True)
+    assert "passphrase" in res
+    assert "entropy" in res
+    assert len(res["passphrase"].split("-")) == 5
+    assert res["entropy"]["bits"] > 40
+
+
