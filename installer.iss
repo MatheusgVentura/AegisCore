@@ -2,7 +2,7 @@
 ; Gera o instalador executavel oficial do Windows (estilo KeePassXC / VS Code)
 
 #define MyAppName "AegisCore"
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.2.0"
 #define MyAppPublisher "Matheus Ventura"
 #define MyAppURL "https://github.com/MatheusgVentura/AegisCore"
 #define MyAppExeName "AegisCore.exe"

@@ -62,15 +62,19 @@ A segurança do AegisCore segue rigorosamente o **Princípio de Kerckhoffs**: a 
 
 ## ✨ Funcionalidades
 
+- **Auto-Type Global & Preenchimento Universal (`Ctrl + Alt + V`):** Digite suas credenciais automaticamente em qualquer navegador ou programa do Windows com delay seguro e submissão automática configurável.
+- **Bandeja do Sistema (System Tray Icon):** Opere em segundo plano com menu de contexto rápido para desbloqueio, bloqueio tático, geração expressa de senhas e minimização ao fechar.
+- **Auto-Bloqueio por Inatividade:** Proteção proativa com temporizador configurável (1, 5, 15, 30, 60 min) que higieniza chaves da memória RAM e área de transferência se o computador ficar ocioso.
+- **Gerador de Frases-Senha (Diceware em Português):** Gere senhas mnemônicas e seguras baseadas em palavras da língua portuguesa com cálculo dinâmico de entropia.
 - **Autenticador 2FA / TOTP Integrado:** Gera tokens temporários de 6 dígitos (RFC 6238) com contador regressivo de 30s e cópia em 1 clique direto no cartão.
 - **Auditoria de Segurança & Saúde do Cofre:** Dashboard analítico que calcula a resiliência do cofre (0 a 100%), identificando senhas de baixa entropia, credenciais reutilizadas e cobertura de autenticação multifator (2FA) com ações corretivas diretas.
 - **Importação e Exportação Descomplicada (CSV):** Migre em segundos suas credenciais de navegadores (Chrome, Edge, Brave) ou outros gerenciadores (Bitwarden, KeePassXC) com detecção automática de colunas.
+- **Central de Preferências do Sistema:** Ajuste e persista preferências de bloqueio, temporizador de clipboard, bandeja e auto-type em arquivo atômico `settings.json`.
 - **Reconhecimento Automático de Logos:** Detecção visual inteligente de centenas de serviços (GitHub, AWS, Google, ProtonMail, OpenAI, Discord, Steam, Microsoft, bancos brasileiros, etc.).
 - **Acesso Rápido ao Navegador (↗️):** Botão direto no card para abrir o serviço ou página de login com segurança no navegador padrão do sistema.
 - **Organização por Drag-and-Drop:** Reordene seus cartões arrastando e soltando livremente, com persistência criptografada.
 - **Favoritos com 1 Clique:** Marque suas contas prioritárias para filtragem rápida.
 - **Busca Instantânea (`Ctrl + K`):** Localize qualquer serviço, usuário ou nota instantaneamente pelo teclado.
-- **Gerador Avançado de Senhas:** Escolha comprimento e pools de caracteres com cálculo dinâmico da entropia de Shannon (em bits e classificação).
 - **Sem Telemetria:** Zero rastreamento, zero conexões de dados para a internet.
 
 ---

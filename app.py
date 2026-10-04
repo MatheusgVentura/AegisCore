@@ -13,6 +13,8 @@ from datetime import datetime
 import pyperclip
 import webview
 from cryptography.exceptions import InvalidTag
+import pystray
+from PIL import Image
 
 import vault_core
 
@@ -27,6 +29,7 @@ class VaultApi:
         self._salt: bytes = b""
         self._clipboard_timer: threading.Timer | None = None
         self._last_copied_sensitive: str = ""
+        self._last_selected_entry_id: str | None = None
         self._window = None
 
     def set_window(self, window):
@@ -84,7 +87,68 @@ class VaultApi:
         if self._clipboard_timer:
             self._clipboard_timer.cancel()
             self._clipboard_timer = None
+        if self._last_copied_sensitive:
+            try:
+                if pyperclip.paste() == self._last_copied_sensitive:
+                    pyperclip.copy("")
+            except Exception:
+                pass
+            self._last_copied_sensitive = ""
+        self._last_selected_entry_id = None
         return {"success": True}
+
+    def set_active_entry(self, entry_id: str) -> dict:
+        """Define a credencial ativa para atalhos rápidos como Auto-Type."""
+        self._last_selected_entry_id = entry_id
+        return {"success": True}
+
+    def perform_autotype(self, entry_id: str | None = None) -> dict:
+        """
+        Executa a sequência de auto-digitação (usuário -> TAB -> senha -> ENTER)
+        após minimizar a janela para retornar o foco à aplicação ativa.
+        """
+        if not self._chave:
+            return {"success": False, "error": "Cofre bloqueado."}
+
+        target_id = entry_id or self._last_selected_entry_id
+        if not target_id:
+            return {"success": False, "error": "Nenhuma credencial selecionada para Auto-Type."}
+
+        entry = next((item for item in self._cofre if item.get("id") == target_id), None)
+        if not entry:
+            return {"success": False, "error": "Credencial não encontrada no cofre."}
+
+        self._last_selected_entry_id = target_id
+
+        settings = vault_core.carregar_configuracoes()
+        press_enter = settings.get("autotype_press_enter", True)
+        delay_ms = settings.get("autotype_delay_ms", 500)
+
+        # Minimiza a janela para que o foco volte ao navegador/aplicativo anterior
+        if self._window:
+            try:
+                self._window.minimize()
+            except Exception:
+                pass
+
+        # Dispara thread com a sequência de digitação
+        usuario = str(entry.get("usuario") or "")
+        senha = str(entry.get("senha") or "")
+
+        def worker():
+            vault_core.executar_autotype(
+                usuario=usuario,
+                senha=senha,
+                press_enter=press_enter,
+                delay_ms=delay_ms,
+            )
+
+        threading.Thread(target=worker, daemon=True).start()
+        return {
+            "success": True,
+            "servico": entry.get("servico", ""),
+            "delay_ms": delay_ms,
+        }
 
     def save_entry(self, entry_data: dict) -> dict:
         """Adiciona ou atualiza uma credencial de forma atômica."""
@@ -235,12 +299,29 @@ class VaultApi:
         entropy = vault_core.calcular_entropia(pwd)
         return {"password": pwd, "entropy": entropy}
 
+    def generate_passphrase(
+        self,
+        words_count: int = 4,
+        separator: str = "-",
+        capitalize: str = "title",
+        include_number: bool = True,
+    ) -> dict:
+        """Gera uma frase-senha memorável (Diceware) e calcula sua entropia."""
+        passphrase = vault_core.gerar_passphrase(
+            palavras_count=words_count,
+            separador=separator,
+            capitalizacao=capitalize,
+            incluir_numero=include_number,
+        )
+        entropy = vault_core.calcular_entropia_passphrase(words_count, include_number)
+        return {"passphrase": passphrase, "entropy": entropy}
+
     def calculate_entropy(self, pwd: str) -> dict:
         """Calcula a entropia da string informada."""
         return vault_core.calcular_entropia(pwd)
 
     def copy_to_clipboard(self, text: str, is_sensitive: bool = True) -> dict:
-        """Copia para o clipboard e inicia timer de higienização de 15 segundos se for sensível."""
+        """Copia para o clipboard e inicia timer de higienização configurável se for sensível."""
         try:
             pyperclip.copy(text)
         except Exception as e:
@@ -251,18 +332,36 @@ class VaultApi:
             if self._clipboard_timer:
                 self._clipboard_timer.cancel()
 
+            cfg = vault_core.carregar_configuracoes()
+            timeout_sec = float(cfg.get("clipboard_clear_seconds", 15))
+
             def limpar():
                 try:
                     if pyperclip.paste() == self._last_copied_sensitive:
                         pyperclip.copy("")
                 except Exception:
                     pass
+                self._last_copied_sensitive = ""
 
-            self._clipboard_timer = threading.Timer(15.0, limpar)
+            self._clipboard_timer = threading.Timer(timeout_sec, limpar)
             self._clipboard_timer.daemon = True
             self._clipboard_timer.start()
 
-        return {"success": True, "timeout": 15}
+            return {"success": True, "timeout": int(timeout_sec)}
+
+        return {"success": True, "timeout": 0}
+
+    def get_settings(self) -> dict:
+        """Retorna as preferências configuradas no aplicativo."""
+        return vault_core.carregar_configuracoes()
+
+    def update_settings(self, settings: dict) -> dict:
+        """Atualiza e persiste as preferências do usuário no disco."""
+        try:
+            saved = vault_core.salvar_configuracoes(settings)
+            return {"success": True, "settings": saved}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     def get_totp_token(self, secret: str) -> dict:
         """Gera código TOTP para um segredo individual."""
@@ -379,6 +478,186 @@ class VaultApi:
             return {"success": False, "error": f"Erro ao salvar arquivo: {str(e)}"}
 
 
+
+class TrayIconManager:
+    """Gerencia o ícone da bandeja do sistema (System Tray) e menu de acesso tático rápido."""
+
+    def __init__(self, api: VaultApi, window: webview.Window, icon_path: str):
+        self.api = api
+        self.window = window
+        self.icon_path = icon_path
+        self.icon: pystray.Icon | None = None
+        self.hotkeys = None
+        self.is_exiting = False
+
+    def _create_image(self) -> Image.Image:
+        """Carrega o ícone oficial ou cria fallback na memória se não encontrado."""
+        if os.path.exists(self.icon_path):
+            try:
+                return Image.open(self.icon_path)
+            except Exception:
+                pass
+        return Image.new("RGBA", (64, 64), color=(12, 11, 8, 255))
+
+    def notify(self, message: str, title: str = "AegisCore"):
+        """Dispara uma notificação do sistema via bandeja."""
+        if self.icon:
+            try:
+                self.icon.notify(message, title)
+            except Exception:
+                pass
+
+    def show_window(self, icon=None, item=None):
+        """Restaura e traz para o primeiro plano a janela do AegisCore."""
+        try:
+            self.window.show()
+            self.window.restore()
+        except Exception:
+            pass
+
+    def trigger_autotype(self, icon=None, item=None):
+        """Dispara a rotina de preenchimento automático para a credencial ativa."""
+        if not self.api._chave:
+            self.show_window()
+            self.notify(
+                "Cofre bloqueado. Desbloqueie sua sessão para utilizar o Auto-Type.",
+                "AegisCore — Auto-Type",
+            )
+            return
+
+        if self.api._last_selected_entry_id:
+            res = self.api.perform_autotype(self.api._last_selected_entry_id)
+            if res.get("success"):
+                self.notify(
+                    f"Digitando credenciais de '{res.get('servico', 'Serviço')}'...",
+                    "AegisCore — Auto-Type",
+                )
+        else:
+            self.show_window()
+            try:
+                self.window.evaluate_js("if (window.focusSearch) window.focusSearch();")
+            except Exception:
+                pass
+            self.notify(
+                "Selecione uma credencial ou clique no botão de Auto-Type.",
+                "AegisCore — Auto-Type",
+            )
+
+    def lock_vault(self, icon=None, item=None):
+        """Tranca o cofre imediatamente, higieniza a RAM e reflete na interface visual."""
+        try:
+            self.api.lock_vault()
+            self.window.evaluate_js("if (window.handleLock) window.handleLock();")
+            self.notify(
+                "Cofre trancado e credenciais higienizadas da memória.",
+                "AegisCore — Bloqueado",
+            )
+        except Exception:
+            pass
+
+    def quick_password(self, icon=None, item=None):
+        """Gera uma senha forte e copia diretamente com expiração de clipboard."""
+        try:
+            pwd = vault_core.gerar_senha_forte(
+                tamanho=18,
+                usar_maiusculas=True,
+                usar_minusculas=True,
+                usar_numeros=True,
+                usar_simbolos=True,
+            )
+            self.api.copy_to_clipboard(pwd, is_sensitive=True)
+            self.notify(
+                "Senha tática de 18 caracteres gerada e copiada para a área de transferência.",
+                "AegisCore — Senha Rápida",
+            )
+        except Exception:
+            pass
+
+    def exit_app(self, icon=None, item=None):
+        """Finaliza a aplicação, higieniza a sessão e encerra a bandeja e a janela."""
+        self.is_exiting = True
+        try:
+            self.api.lock_vault()
+        except Exception:
+            pass
+        if self.hotkeys:
+            try:
+                self.hotkeys.stop()
+            except Exception:
+                pass
+            self.hotkeys = None
+        if self.icon:
+            try:
+                self.icon.stop()
+            except Exception:
+                pass
+        try:
+            self.window.destroy()
+        except Exception:
+            pass
+
+    def on_closing(self, *args, **kwargs) -> bool:
+        """
+        Intercepta o evento de fechamento da janela.
+        Se minimize_to_tray estiver ativado, esconde a janela e cancela o encerramento do processo.
+        """
+        if self.is_exiting:
+            return True
+
+        settings = vault_core.carregar_configuracoes()
+        if settings.get("minimize_to_tray", True):
+            try:
+                self.window.hide()
+                self.notify(
+                    "AegisCore continua protegido em segundo plano na bandeja do sistema.",
+                    "AegisCore Minimizado",
+                )
+            except Exception:
+                pass
+            return False
+
+        self.exit_app()
+        return True
+
+    def start(self):
+        """Inicia o ícone da bandeja e o listener de atalhos globais em segundo plano."""
+        image = self._create_image()
+        menu = pystray.Menu(
+            pystray.MenuItem("Abrir AegisCore", self.show_window, default=True),
+            pystray.MenuItem("Auto-Type (Ctrl+Alt+V)", self.trigger_autotype),
+            pystray.MenuItem("Bloquear Cofre", self.lock_vault),
+            pystray.MenuItem("Gerar Senha Rápida", self.quick_password),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Sair do AegisCore", self.exit_app),
+        )
+        self.icon = pystray.Icon("AegisCore", image, "AegisCore — Password Vault", menu=menu)
+        self.icon.run_detached()
+
+        # Inicia o atalho global Ctrl+Alt+V
+        try:
+            from pynput import keyboard
+            self.hotkeys = keyboard.GlobalHotKeys({
+                '<ctrl>+<alt>+v': self.trigger_autotype,
+            })
+            self.hotkeys.start()
+        except Exception:
+            self.hotkeys = None
+
+    def stop(self):
+        """Para o ícone da bandeja e o listener de atalhos."""
+        if self.hotkeys:
+            try:
+                self.hotkeys.stop()
+            except Exception:
+                pass
+            self.hotkeys = None
+        if self.icon:
+            try:
+                self.icon.stop()
+            except Exception:
+                pass
+
+
 def get_resource_path(relative_path: str) -> str:
     """Obtém o caminho absoluto para recursos, funcionando em dev e empacotado pelo PyInstaller."""
     base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
@@ -389,7 +668,7 @@ def main():
     if sys.platform == "win32":
         try:
             import ctypes
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("aegiscore.vault.app.1.1")
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("aegiscore.vault.app.1.2")
         except Exception:
             pass
 
@@ -410,7 +689,14 @@ def main():
     )
     api.set_window(window)
 
-    webview.start(debug=False, icon=icon_path if os.path.exists(icon_path) else None)
+    tray_mgr = TrayIconManager(api, window, icon_path)
+    window.events.closing += tray_mgr.on_closing
+    tray_mgr.start()
+
+    try:
+        webview.start(debug=False, icon=icon_path if os.path.exists(icon_path) else None)
+    finally:
+        tray_mgr.stop()
 
 
 if __name__ == "__main__":

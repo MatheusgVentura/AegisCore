@@ -91,6 +91,14 @@
           <span>Importar / Exportar</span>
         </div>
       </div>
+      <div class="nav-item" id="btn-sidebar-settings">
+        <div class="nav-item-left">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span>Configurações</span>
+        </div>
+      </div>
       <div class="nav-item" id="btn-sidebar-lock" style="color: var(--accent-red);">
         <div class="nav-item-left">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -129,6 +137,12 @@
           </button>
         </form>
         <div class="auth-error-box" id="unlock-error"></div>
+        <div class="auth-notice-box" id="unlock-auto-notice" style="display: none;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <span id="unlock-auto-notice-text">Cofre bloqueado automaticamente por inatividade.</span>
+        </div>
       </div>
 
       <!-- Painel de Inicialização -->
@@ -415,7 +429,7 @@
     </div>
   </div>
 
-  <!-- Modal: Gerador de Senhas -->
+  <!-- Modal: Gerador de Senhas e Frases-Senha -->
   <div class="modal-backdrop" id="modal-gen">
     <div class="modal-content">
       <div class="modal-header-row">
@@ -423,6 +437,12 @@
         <button class="btn-icon-btn" id="btn-close-gen-modal">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
+      </div>
+
+      <!-- Abas de Modo -->
+      <div class="io-tabs" style="margin-bottom: 16px;">
+        <button type="button" class="io-tab active" id="tab-gen-password">Senha Aleatória</button>
+        <button type="button" class="io-tab" id="tab-gen-passphrase">Frase-Senha (Diceware)</button>
       </div>
 
       <div class="form-field">
@@ -434,24 +454,62 @@
         </div>
       </div>
 
-      <div class="gen-controls-box">
-        <div class="slider-row">
-          <span style="font-size: 12px; color: var(--text-secondary);">Comprimento: <strong id="gen-length-val" style="color: var(--gold-primary);">24</strong></span>
-          <input type="range" id="gen-slider" min="8" max="64" value="24" style="width: 55%;">
-        </div>
+      <!-- Painel: Senha Aleatória -->
+      <div id="gen-panel-password">
+        <div class="gen-controls-box">
+          <div class="slider-row">
+            <span style="font-size: 12px; color: var(--text-secondary);">Comprimento: <strong id="gen-length-val" style="color: var(--gold-primary);">24</strong></span>
+            <input type="range" id="gen-slider" min="8" max="64" value="24" style="width: 55%;">
+          </div>
 
-        <div class="checkboxes-grid">
-          <label class="checkbox-label">
-            <input type="checkbox" id="gen-upper" checked> Maiúsculas (A-Z)
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="gen-lower" checked> Minúsculas (a-z)
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="gen-digits" checked> Números (0-9)
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="gen-symbols" checked> Símbolos (!@#$)
+          <div class="checkboxes-grid">
+            <label class="checkbox-label">
+              <input type="checkbox" id="gen-upper" checked> Maiúsculas (A-Z)
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="gen-lower" checked> Minúsculas (a-z)
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="gen-digits" checked> Números (0-9)
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="gen-symbols" checked> Símbolos (!@#$)
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Painel: Frase-Senha (Diceware) -->
+      <div id="gen-panel-passphrase" style="display: none;">
+        <div class="gen-controls-box">
+          <div class="slider-row" style="margin-bottom: 12px;">
+            <span style="font-size: 12px; color: var(--text-secondary);">Palavras: <strong id="passphrase-words-val" style="color: var(--gold-primary);">4</strong></span>
+            <input type="range" id="passphrase-slider" min="3" max="7" value="4" style="width: 55%;">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <div class="form-field" style="margin-bottom: 0;">
+              <label class="field-label" style="font-size: 11px;">Separador</label>
+              <select id="passphrase-separator" class="input-styled select-styled" style="font-size: 12px; padding: 6px 10px;">
+                <option value="-" selected>Hífen (-)</option>
+                <option value=".">Ponto (.)</option>
+                <option value="_">Sublinhado (_)</option>
+                <option value=" ">Espaço ( )</option>
+                <option value="">Nenhum</option>
+              </select>
+            </div>
+            <div class="form-field" style="margin-bottom: 0;">
+              <label class="field-label" style="font-size: 11px;">Capitalização</label>
+              <select id="passphrase-case" class="input-styled select-styled" style="font-size: 12px; padding: 6px 10px;">
+                <option value="title" selected>Iniciais Maiúsculas</option>
+                <option value="lower">Todas Minúsculas</option>
+                <option value="upper">Todas Maiúsculas</option>
+              </select>
+            </div>
+          </div>
+
+          <label class="checkbox-label" style="margin-top: 4px;">
+            <input type="checkbox" id="passphrase-number" checked> Incluir número aleatório (ex: 42)
           </label>
         </div>
       </div>
@@ -549,6 +607,112 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Modal: Configurações de Segurança -->
+  <div class="modal-backdrop" id="modal-settings">
+    <div class="modal-content" style="max-width: 480px; width: 92%;">
+      <div class="modal-header-row">
+        <div class="modal-heading" style="display: flex; align-items: center; gap: 8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          Configurações de Segurança
+        </div>
+        <button class="btn-icon-btn" id="btn-close-settings-modal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <form id="settings-form" onsubmit="return false;">
+        <!-- Configuração: Auto-Bloqueio -->
+        <div class="form-field" style="margin-bottom: 20px;">
+          <label class="field-label" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Auto-bloqueio por inatividade</span>
+            <span class="badge-tag" style="background: rgba(184, 145, 83, 0.15); color: var(--gold-primary); font-size: 10px; padding: 2px 6px; border-radius: 4px;">Segurança</span>
+          </label>
+          <select id="setting-auto-lock" class="input-styled select-styled">
+            <option value="1">1 minuto (Máxima Segurança / Teste)</option>
+            <option value="5" selected>5 minutos (Recomendado)</option>
+            <option value="15">15 minutos</option>
+            <option value="30">30 minutos</option>
+            <option value="60">1 hora</option>
+            <option value="0">Desativado (Nunca bloquear)</option>
+          </select>
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 5px;">
+            Tranca o cofre e higieniza chaves da memória RAM se nenhuma atividade for detectada.
+          </span>
+        </div>
+
+        <!-- Configuração: Limpeza Clipboard -->
+        <div class="form-field" style="margin-bottom: 20px;">
+          <label class="field-label" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Limpeza da Área de Transferência</span>
+            <span class="badge-tag" style="background: rgba(184, 145, 83, 0.15); color: var(--gold-primary); font-size: 10px; padding: 2px 6px; border-radius: 4px;">Privacidade</span>
+          </label>
+          <select id="setting-clipboard-clear" class="input-styled select-styled">
+            <option value="10">10 segundos</option>
+            <option value="15" selected>15 segundos (Padrão)</option>
+            <option value="30">30 segundos</option>
+            <option value="60">60 segundos</option>
+          </select>
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 5px;">
+            Tempo decorrido até que senhas copiadas sejam totalmente apagadas da memória do sistema.
+          </span>
+        </div>
+
+        <!-- Configuração: Minimizar para Bandeja -->
+        <div class="form-field" style="margin-bottom: 20px;">
+          <label class="field-label" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Bandeja do Sistema (System Tray)</span>
+            <span class="badge-tag" style="background: rgba(184, 145, 83, 0.15); color: var(--gold-primary); font-size: 10px; padding: 2px 6px; border-radius: 4px;">Desktop</span>
+          </label>
+          <label class="checkbox-label" style="margin-top: 6px;">
+            <input type="checkbox" id="setting-minimize-tray" checked>
+            Minimizar para a bandeja ao fechar a janela
+          </label>
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 5px;">
+            Mantém o AegisCore ativo em segundo plano no relógio do Windows ao clicar no X. O menu de contexto na bandeja permite reabrir, bloquear ou sair definitivamente.
+          </span>
+        </div>
+
+        <!-- Configuração: Auto-Type Global -->
+        <div class="form-field" style="margin-bottom: 20px;">
+          <label class="field-label" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Auto-Type (Preenchimento Universal)</span>
+            <span class="badge-tag" style="background: rgba(184, 145, 83, 0.15); color: var(--gold-primary); font-size: 10px; padding: 2px 6px; border-radius: 4px;">Ctrl+Alt+V</span>
+          </label>
+          <label class="checkbox-label" style="margin-top: 6px;">
+            <input type="checkbox" id="setting-autotype-enter" checked>
+            Pressionar [Enter] automaticamente após digitar a senha
+          </label>
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 5px;">
+            Simula o envio automático do formulário de login no navegador ou aplicativo após preencher o usuário e senha.
+          </span>
+        </div>
+
+        <div class="form-field" style="margin-bottom: 24px;">
+          <label class="field-label" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Atraso de Digitação (Auto-Type Delay)</span>
+            <span class="badge-tag" style="background: rgba(184, 145, 83, 0.15); color: var(--gold-primary); font-size: 10px; padding: 2px 6px; border-radius: 4px;">Foco</span>
+          </label>
+          <select id="setting-autotype-delay" class="input-styled select-styled">
+            <option value="300">300 ms (Rápido)</option>
+            <option value="500" selected>500 ms (Padrão Recomendado)</option>
+            <option value="1000">1000 ms (1 segundo)</option>
+            <option value="1500">1500 ms (1.5 segundos)</option>
+          </select>
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 5px;">
+            Tempo de espera após minimizar o AegisCore para garantir que o cursor esteja ativo no campo de login de destino.
+          </span>
+        </div>
+
+        <div class="modal-actions-row">
+          <button type="button" class="btn-ghost" id="btn-cancel-settings">Cancelar</button>
+          <button type="button" class="btn-primary" id="btn-save-settings">Salvar Preferências</button>
+        </div>
+      </form>
     </div>
   </div>
 

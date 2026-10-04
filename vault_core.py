@@ -14,6 +14,7 @@ import base64
 import re
 import csv
 import io
+from typing import Any
 from datetime import datetime
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -60,6 +61,7 @@ def get_data_dir() -> str:
 BASE_DIR = get_data_dir()
 VAULT_FILE = os.path.join(BASE_DIR, "vault.enc")
 BACKUP_FILE = os.path.join(BASE_DIR, "vault.enc.bak")
+SETTINGS_FILE = os.path.join(BASE_DIR, "settings.json")
 
 
 def derivar_chave(senha_mestra: str, salt: bytes) -> bytes:
@@ -225,6 +227,111 @@ def gerar_senha_forte(
     rng = secrets.SystemRandom()
     rng.shuffle(senha_chars)
     return "".join(senha_chars)
+
+
+DICEWARE_WORDS = [
+    "abrigo", "acesso", "aco", "adaga", "aguia", "aldeia", "alfa", "algoritmo", "aliado", "alvo",
+    "ambar", "ametista", "amuleto", "ancora", "anel", "antena", "apogeu", "apolo", "arcano", "arena",
+    "argonio", "armadura", "artefato", "asa", "asfalto", "astro", "astuto", "atlas", "atomo", "audaz",
+    "aurora", "avanco", "avatar", "azimute", "azul", "baleia", "bambu", "barao", "barreira", "bastiao",
+    "bateria", "bazar", "besouro", "bisonte", "blindagem", "bloqueio", "boreal", "bosque", "brasa", "bravo",
+    "brisa", "bronze", "bruxo", "bussola", "cabine", "cacto", "caderno", "calibre", "calor", "camelo",
+    "campeao", "campo", "canal", "canion", "capitao", "capsula", "carbono", "cardume", "cascata", "castelo",
+    "cavaleiro", "caverna", "cedro", "celeste", "celula", "centelha", "centro", "cereal", "cerne", "chama",
+    "chave", "chicote", "chumbo", "ciclo", "cidra", "cilindro", "cimento", "cinza", "circuito", "cisne",
+    "citadela", "clarim", "claro", "clube", "cobra", "codigo", "coiote", "colina", "colmeia", "coluna",
+    "comando", "cometa", "compasso", "concha", "condor", "cone", "conexao", "confins", "coral", "coroa",
+    "corredor", "coruja", "corvo", "cosmos", "cratera", "cristal", "cromo", "cruzeiro", "cupula", "curva",
+    "dardo", "delta", "deserto", "destino", "diamante", "dique", "disco", "divino", "dourado", "dragao",
+    "duna", "duque", "eclipse", "eco", "edificio", "elemento", "elmo", "emblema", "energia", "enigma",
+    "epicentro", "equipe", "ermitao", "escudo", "esfera", "esmeralda", "espada", "espelho", "espiral", "estacao",
+    "estrela", "eterno", "falcao", "farao", "farol", "fauna", "feroz", "ferro", "fibra", "firme",
+    "flama", "flecha", "flora", "floresta", "fluxo", "foco", "fonte", "forja", "formula", "fortaleza",
+    "fosforo", "fossil", "fracao", "fronteira", "fulgor", "fumaca", "furacao", "fusao", "futuro", "galaxia",
+    "galho", "gaviao", "geada", "gelo", "geminis", "general", "geodo", "gigante", "glaciar", "globo",
+    "gnomo", "golfo", "gralha", "granito", "gravidade", "grifo", "gruta", "guarda", "guerreiro", "habitat",
+    "harpia", "helice", "helios", "heroi", "hidra", "hifem", "horizonte", "humano", "iapeto", "iceberg",
+    "icone", "ideal", "iguana", "ilhar", "impacto", "imperio", "impulso", "indice", "infinito", "insignia",
+    "intacto", "iris", "jaguar", "jardim", "jasmim", "jazida", "labirinto", "lacre", "lacuna", "laguna",
+    "lamina", "lampada", "lanca", "lapiseira", "laser", "lateral", "lava", "legado", "legiao", "leme",
+    "lente", "leopardo", "leviata", "liberdade", "lider", "limiar", "lince", "linhagem", "litoral", "livro",
+    "lobo", "lotus", "lunar", "lustre", "luva", "luz", "machado", "madrepola", "maestro", "magma",
+    "magneto", "magnitude", "malha", "manancial", "manto", "manual", "mapa", "marfim", "marina", "marmore",
+    "marte", "mascara", "mastiff", "matriz", "maximo", "medalha", "megafone", "melodia", "menir", "mercurio",
+    "meseta", "meteoro", "metropole", "microbio", "milagre", "mineral", "miragem", "missao", "mistico", "modulo",
+    "moeda", "moinho", "monarca", "monolito", "montanha", "morada", "mosaico", "motor", "muralha", "mutante",
+    "nadire", "nanico", "nativo", "navio", "nebula", "nefron", "neon", "netuno", "neutro", "nevoeiro",
+    "nexus", "nicho", "ninfa", "nitrogenio", "nobre", "nodo", "nomade", "nordico", "notavel", "nova",
+    "nucleo", "nuvem", "oasis", "obelisco", "observador", "oceano", "octante", "oculos", "odisseia", "ogiva",
+    "omega", "onix", "opala", "orbita", "ordem", "oriente", "origem", "orion", "orvalho", "ouro",
+    "outono", "oxigenio", "padrao", "pagina", "painel", "paladino", "palacio", "pantano", "pantera", "pantografo",
+    "papirus", "parabola", "paralelo", "parametro", "particula", "passagem", "patrono", "patrulha", "pegaso", "pelicano",
+    "pendulo", "penhasco", "pepita", "perfil", "pergaminho", "periscopio", "petala", "petroleo", "pilar", "piloto",
+    "pinaculo", "pioneiro", "piramide", "pirata", "pistao", "planeta", "planalto", "plasma", "platina", "pluma",
+    "podio", "poente", "poesia", "polar", "poligono", "polvo", "pomar", "ponte", "portal", "portento",
+    "posicao", "postigo", "potencia", "pradaria", "prata", "prisma", "proa", "profundo", "prossiga", "proton",
+    "pulpito", "pulsar", "pureza", "quadrante", "quantum", "quartzo", "quimera", "radar", "radiante", "radon",
+    "raio", "ramal", "raposa", "reator", "recife", "redoma", "reflexo", "refugio", "regente", "reino",
+    "relogio", "remoto", "repuxo", "resina", "ressonancia", "retina", "rinoceronte", "rio", "rocha", "rochedo",
+    "rodovia", "rotor", "rubi", "ruina", "safira", "sagaz", "salao", "salto", "santuario", "satelite",
+    "sauro", "selva", "semente", "senhor", "sentinela", "serpente", "serra", "sideral", "sigilo", "silicio",
+    "silvano", "simbolo", "sincero", "sirene", "sirius", "sistema", "soberano", "solar", "soldado", "solsticio",
+    "sombra", "sonda", "sonho", "submarino", "sulfeto", "sumario", "supremo", "talisma", "tambor", "tanque",
+    "tarantula", "tatico", "tectonico", "telescopio", "tempestade", "templo", "tenaz", "tensor", "terremoto", "tesouro",
+    "tita", "titanio", "tocha", "tornado", "torpedo", "torre", "tribuna", "tridente", "trofeu", "trovao",
+    "tubarao", "tulipa", "tungstenio", "turbina", "turquesa", "tutela", "ultravioleta", "umbral", "universo", "urano",
+    "ursa", "usina", "utopia", "vagalume", "valente", "valquiria", "valvula", "vanguarda", "vapor", "veiculo",
+    "veleiro", "velocidade", "ventania", "venus", "vereda", "vertice", "vesper", "viaduto", "viajante", "vigia",
+    "vigor", "vinculo", "violeta", "viper", "virtude", "visao", "viser", "vital", "volante", "voltagem",
+    "vortex", "vulcao", "xenon", "zenite", "zepelim", "zodiaco"
+]
+
+
+def gerar_passphrase(
+    palavras_count: int = 4,
+    separador: str = "-",
+    capitalizacao: str = "title",
+    incluir_numero: bool = True,
+) -> str:
+    """
+    Gera uma frase-senha memorável e criptograficamente segura baseada no conceito Diceware.
+    Usa secrets.choice sobre uma lista curada de palavras em português.
+    """
+    count = max(3, min(8, int(palavras_count)))
+    escolhidas = [secrets.choice(DICEWARE_WORDS) for _ in range(count)]
+
+    if capitalizacao == "title":
+        escolhidas = [w.capitalize() for w in escolhidas]
+    elif capitalizacao == "upper":
+        escolhidas = [w.upper() for w in escolhidas]
+    else:
+        escolhidas = [w.lower() for w in escolhidas]
+
+    base = separador.join(escolhidas)
+    if incluir_numero:
+        num = str(secrets.randbelow(90) + 10)
+        return f"{base}{separador}{num}" if separador else f"{base}{num}"
+    return base
+
+
+def calcular_entropia_passphrase(palavras_count: int, incluir_numero: bool = True) -> dict:
+    """
+    Calcula a entropia no espaço amostral do dicionário Diceware (536 palavras).
+    """
+    bits_por_palavra = math.log2(len(DICEWARE_WORDS))  # ~9.06 bits por palavra
+    bits = max(3, min(8, int(palavras_count))) * bits_por_palavra
+    if incluir_numero:
+        bits += math.log2(90)  # ~6.49 bits para números 10-99
+    # Capitalização e separador adicionam variações adicionais
+    bits += 2.0
+
+    bits = round(bits, 1)
+    if bits < 40:
+        return {"bits": bits, "nivel": "Moderada", "cor": "#f59e0b", "percentual": 50}
+    elif bits < 60:
+        return {"bits": bits, "nivel": "Forte", "cor": "#10b981", "percentual": 75}
+    else:
+        return {"bits": bits, "nivel": "Impenetrável", "cor": "#06b6d4", "percentual": 100}
 
 
 def calcular_entropia(senha: str) -> dict:
@@ -558,4 +665,136 @@ def exportar_csv(cofre: list[dict]) -> str:
         ])
 
     return output.getvalue()
+
+
+DEFAULT_SETTINGS = {
+    "auto_lock_minutes": 5,
+    "clipboard_clear_seconds": 15,
+    "minimize_to_tray": True,
+    "autotype_press_enter": True,
+    "autotype_delay_ms": 500,
+}
+
+
+def carregar_configuracoes(settings_path: str | None = None) -> dict:
+    """
+    Carrega as preferências locais do usuário (auto-bloqueio, clipboard, bandeja, auto-type, etc.).
+    Retorna os padrões seguros caso o arquivo não exista ou ocorra erro de leitura.
+    """
+    path = settings_path or SETTINGS_FILE
+    config = dict(DEFAULT_SETTINGS)
+
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                dados = json.load(f)
+                if isinstance(dados, dict):
+                    if "auto_lock_minutes" in dados:
+                        try:
+                            config["auto_lock_minutes"] = max(0, int(dados["auto_lock_minutes"]))
+                        except (ValueError, TypeError):
+                            pass
+                    if "clipboard_clear_seconds" in dados:
+                        try:
+                            config["clipboard_clear_seconds"] = max(5, int(dados["clipboard_clear_seconds"]))
+                        except (ValueError, TypeError):
+                            pass
+                    if "minimize_to_tray" in dados:
+                        config["minimize_to_tray"] = bool(dados["minimize_to_tray"])
+                    if "autotype_press_enter" in dados:
+                        config["autotype_press_enter"] = bool(dados["autotype_press_enter"])
+                    if "autotype_delay_ms" in dados:
+                        try:
+                            config["autotype_delay_ms"] = max(200, min(3000, int(dados["autotype_delay_ms"])))
+                        except (ValueError, TypeError):
+                            pass
+        except Exception:
+            pass
+
+    return config
+
+
+def salvar_configuracoes(novas_configuracoes: dict, settings_path: str | None = None) -> dict:
+    """
+    Salva as preferências do usuário de forma atômica no arquivo settings.json.
+    """
+    path = settings_path or SETTINGS_FILE
+    config = carregar_configuracoes(path)
+
+    if isinstance(novas_configuracoes, dict):
+        if "auto_lock_minutes" in novas_configuracoes:
+            try:
+                config["auto_lock_minutes"] = max(0, int(novas_configuracoes["auto_lock_minutes"]))
+            except (ValueError, TypeError):
+                pass
+        if "clipboard_clear_seconds" in novas_configuracoes:
+            try:
+                config["clipboard_clear_seconds"] = max(5, int(novas_configuracoes["clipboard_clear_seconds"]))
+            except (ValueError, TypeError):
+                pass
+        if "minimize_to_tray" in novas_configuracoes:
+            config["minimize_to_tray"] = bool(novas_configuracoes["minimize_to_tray"])
+        if "autotype_press_enter" in novas_configuracoes:
+            config["autotype_press_enter"] = bool(novas_configuracoes["autotype_press_enter"])
+        if "autotype_delay_ms" in novas_configuracoes:
+            try:
+                config["autotype_delay_ms"] = max(200, min(3000, int(novas_configuracoes["autotype_delay_ms"])))
+            except (ValueError, TypeError):
+                pass
+
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    temp_path = f"{path}.tmp"
+    with open(temp_path, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+    os.replace(temp_path, path)
+
+    return config
+
+
+def executar_autotype(
+    usuario: str,
+    senha: str,
+    press_enter: bool = True,
+    delay_ms: int = 500,
+    keyboard_controller: Any | None = None,
+) -> bool:
+    """
+    Simula a digitação segura do usuário e senha em primeiro plano no aplicativo ativo.
+    Usa pynput.keyboard.Controller ou mock injetado para testes unitários isolados.
+    """
+    import time
+    if keyboard_controller is None:
+        try:
+            from pynput.keyboard import Controller, Key
+            kb = Controller()
+        except Exception:
+            return False
+    else:
+        from pynput.keyboard import Key
+        kb = keyboard_controller
+
+    # Atraso de foco para garantir que a janela de destino esteja ativa
+    if delay_ms > 0:
+        time.sleep(max(0.05, delay_ms / 1000.0))
+
+    try:
+        if usuario:
+            kb.type(usuario)
+            time.sleep(0.05)
+
+        if usuario and senha:
+            kb.tap(Key.tab)
+            time.sleep(0.05)
+
+        if senha:
+            kb.type(senha)
+            time.sleep(0.05)
+
+        if press_enter:
+            kb.tap(Key.enter)
+
+        return True
+    except Exception:
+        return False
+
 

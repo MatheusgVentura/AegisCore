@@ -9,6 +9,16 @@ let state = {
   totpTokens: {},
   totpInterval: null,
   healthData: null,
+  settings: {
+    auto_lock_minutes: 5,
+    clipboard_clear_seconds: 15,
+    minimize_to_tray: true,
+    autotype_press_enter: true,
+    autotype_delay_ms: 500,
+  },
+  generatorMode: 'password',
+  inactivityTimer: null,
+  lastActivityThrottle: 0,
 };
 
 // Comunicação com API Python
@@ -36,6 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initApp() {
+  await loadSettings();
+  setupInactivityListeners();
+
   const status = await callApi('check_vault_status');
   if (!status) return;
 
@@ -143,6 +156,26 @@ function setupEventListeners() {
 
   const btnIo = document.getElementById('btn-sidebar-io');
   if (btnIo) btnIo.addEventListener('click', openIoModal);
+
+  const btnSettings = document.getElementById('btn-sidebar-settings');
+  if (btnSettings) btnSettings.addEventListener('click', openSettingsModal);
+
+  const btnCloseSettings = document.getElementById('btn-close-settings-modal');
+  if (btnCloseSettings) btnCloseSettings.addEventListener('click', closeSettingsModal);
+
+  const btnCancelSettings = document.getElementById('btn-cancel-settings');
+  if (btnCancelSettings) btnCancelSettings.addEventListener('click', closeSettingsModal);
+
+  const btnSaveSettings = document.getElementById('btn-save-settings');
+  if (btnSaveSettings) btnSaveSettings.addEventListener('click', handleSaveSettings);
+
+  const settingsForm = document.getElementById('settings-form');
+  if (settingsForm) {
+    settingsForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleSaveSettings();
+    });
+  }
 
   // Navegação na Sidebar
   document.querySelectorAll('.nav-item[data-category]').forEach((item) => {
@@ -255,6 +288,13 @@ function setupEventListeners() {
 
   // Gerador Completo
   document.getElementById('btn-close-gen-modal').addEventListener('click', closeGenModal);
+
+  // Abas do Gerador
+  const tabGenPass = document.getElementById('tab-gen-password');
+  const tabGenPhrase = document.getElementById('tab-gen-passphrase');
+  if (tabGenPass) tabGenPass.addEventListener('click', () => switchGeneratorMode('password'));
+  if (tabGenPhrase) tabGenPhrase.addEventListener('click', () => switchGeneratorMode('passphrase'));
+
   document.getElementById('gen-slider').addEventListener('input', (e) => {
     document.getElementById('gen-length-val').innerText = e.target.value;
     refreshGeneratorDisplay();
@@ -262,6 +302,22 @@ function setupEventListeners() {
   ['gen-upper', 'gen-lower', 'gen-digits', 'gen-symbols'].forEach((id) => {
     document.getElementById(id).addEventListener('change', refreshGeneratorDisplay);
   });
+
+  // Controles de Frase-Senha (Diceware)
+  const passSlider = document.getElementById('passphrase-slider');
+  if (passSlider) {
+    passSlider.addEventListener('input', (e) => {
+      document.getElementById('passphrase-words-val').innerText = e.target.value;
+      refreshGeneratorDisplay();
+    });
+  }
+  ['passphrase-separator', 'passphrase-case'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', refreshGeneratorDisplay);
+  });
+  const passNumber = document.getElementById('passphrase-number');
+  if (passNumber) passNumber.addEventListener('change', refreshGeneratorDisplay);
+
   document.getElementById('btn-regen').addEventListener('click', refreshGeneratorDisplay);
   document.getElementById('btn-copy-generated').addEventListener('click', copyGeneratedPassword);
   document.getElementById('btn-use-generated').addEventListener('click', () => {
@@ -274,7 +330,7 @@ function setupEventListeners() {
   document.getElementById('btn-confirm-delete').addEventListener('click', handleConfirmDelete);
 
   // Fechamento de modais ao clicar no backdrop (fora da janela modal)
-  ['modal-entry', 'modal-gen', 'modal-delete', 'modal-io'].forEach((id) => {
+  ['modal-entry', 'modal-gen', 'modal-delete', 'modal-io', 'modal-settings'].forEach((id) => {
     const backdrop = document.getElementById(id);
     if (backdrop) {
       backdrop.addEventListener('click', (e) => {
@@ -292,7 +348,10 @@ async function handleUnlock(e) {
   if (e) e.preventDefault();
   const input = document.getElementById('input-unlock-pass');
   const errorBox = document.getElementById('unlock-error');
+  const noticeBox = document.getElementById('unlock-auto-notice');
   const pass = input.value;
+
+  if (noticeBox) noticeBox.style.display = 'none';
 
   if (!pass) {
     showError(errorBox, 'Digite a senha mestra para desbloquear.');
@@ -335,7 +394,8 @@ async function handleSetup(e) {
   }
 }
 
-async function handleLock() {
+async function handleLock(isAutoLock = false) {
+  stopInactivityTimer();
   stopTotpTicker();
   await callApi('lock_vault');
   state.entries = [];
@@ -350,17 +410,39 @@ async function handleLock() {
   document.getElementById('panel-setup').style.display = 'none';
   document.getElementById('input-unlock-pass').value = '';
   document.getElementById('unlock-error').style.display = 'none';
+
+  const noticeBox = document.getElementById('unlock-auto-notice');
+  if (noticeBox) {
+    if (isAutoLock) {
+      const minutes = Number(state.settings?.auto_lock_minutes ?? 5);
+      const minText = minutes === 1 ? '1 minuto' : `${minutes} minutos`;
+      const textEl = document.getElementById('unlock-auto-notice-text');
+      if (textEl) {
+        textEl.textContent = `Cofre bloqueado automaticamente após ${minText} de inatividade.`;
+      }
+      noticeBox.style.display = 'flex';
+    } else {
+      noticeBox.style.display = 'none';
+    }
+  }
+
   document.getElementById('input-unlock-pass').focus();
 }
+
+// Expõe para sincronização pelo Tray Manager
+window.handleLock = handleLock;
 
 function showDashboard() {
   document.getElementById('auth-view').style.display = 'none';
   document.getElementById('app-sidebar').style.display = 'flex';
   document.getElementById('dashboard-wrapper').style.display = 'flex';
+  const noticeBox = document.getElementById('unlock-auto-notice');
+  if (noticeBox) noticeBox.style.display = 'none';
   switchView('credentials');
   renderCards();
   updateHealthHud();
   startTotpTicker();
+  resetInactivityTimer();
 }
 
 function showError(element, msg) {
@@ -731,6 +813,9 @@ function renderCards() {
           <button class="btn-icon-btn" title="Mostrar/Ocultar" onclick="toggleCardPassword('${entry.id}', '${escapeAttr(entry.senha)}')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
+          <button class="btn-icon-btn" title="Auto-Type (Digitar Credenciais no Aplicativo ou Navegador Anterior)" onclick="triggerAutoType('${entry.id}', event)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>
+          </button>
         </div>
 
         <div class="card-action-btns-right">
@@ -743,6 +828,11 @@ function renderCards() {
         </div>
       </div>
     `;
+
+    // Define credencial como ativa ao interagir com o card
+    card.addEventListener('click', () => {
+      callApi('set_active_entry', entry.id);
+    });
 
     // Listeners de Drag and Drop
     card.addEventListener('dragstart', (e) => {
@@ -824,8 +914,35 @@ window.copyUser = async function (user) {
 
 window.copyPassword = async function (pass) {
   if (!pass) return;
-  await callApi('copy_to_clipboard', pass, true);
-  triggerToast('Senha copiada com segurança • Limpeza em', 15);
+  const res = await callApi('copy_to_clipboard', pass, true);
+  const timeout = (res && res.timeout) ? res.timeout : (state.settings?.clipboard_clear_seconds || 15);
+  triggerToast('Senha copiada com segurança • Limpeza em', timeout);
+};
+
+// Auto-Type Global e Local
+window.triggerAutoType = async function (id, event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  try {
+    const delay = Number(state.settings?.autotype_delay_ms ?? 500);
+    triggerToast(`Auto-Type: Minimizando e digitando em ${(delay / 1000).toFixed(1)}s...`, 3);
+    const res = await callApi('perform_autotype', id);
+    if (!res || !res.success) {
+      triggerToast(res?.error || 'Erro ao acionar Auto-Type.', 3);
+    }
+  } catch (err) {
+    console.error('Erro no Auto-Type:', err);
+  }
+};
+
+window.focusSearch = function () {
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.focus();
+    searchInput.select();
+  }
 };
 
 // Alternar Favorito AegisCore
@@ -1007,35 +1124,91 @@ async function handleConfirmDelete() {
   }
 }
 
-// Gerador de Senhas
+// Gerador de Senhas e Frases-Senha
 async function openGenModal() {
   document.getElementById('modal-gen').classList.add('active');
-  await refreshGeneratorDisplay();
+  switchGeneratorMode(state.generatorMode || 'password');
 }
 
 function closeGenModal() {
   document.getElementById('modal-gen').classList.remove('active');
 }
 
-async function refreshGeneratorDisplay() {
-  const len = parseInt(document.getElementById('gen-slider').value, 10);
-  const upper = document.getElementById('gen-upper').checked;
-  const lower = document.getElementById('gen-lower').checked;
-  const digits = document.getElementById('gen-digits').checked;
-  const symbols = document.getElementById('gen-symbols').checked;
+function switchGeneratorMode(mode) {
+  state.generatorMode = mode;
+  const tabPass = document.getElementById('tab-gen-password');
+  const tabPhrase = document.getElementById('tab-gen-passphrase');
+  const panelPass = document.getElementById('gen-panel-password');
+  const panelPhrase = document.getElementById('gen-panel-passphrase');
+  const btnRegen = document.getElementById('btn-regen');
+  const btnUse = document.getElementById('btn-use-generated');
 
-  const res = await callApi('generate_password', len, upper, lower, digits, symbols);
-  if (res && res.password) {
-    document.getElementById('gen-display').value = res.password;
-    updateEntropyMeter(res.password, 'gen-meter-fill', 'gen-meter-label', 'gen-meter-bits');
+  if (mode === 'passphrase') {
+    if (tabPass) tabPass.classList.remove('active');
+    if (tabPhrase) tabPhrase.classList.add('active');
+    if (panelPass) panelPass.style.display = 'none';
+    if (panelPhrase) panelPhrase.style.display = 'block';
+    if (btnRegen) btnRegen.innerText = 'Nova frase';
+    if (btnUse) btnUse.innerText = 'Copiar frase';
+  } else {
+    if (tabPhrase) tabPhrase.classList.remove('active');
+    if (tabPass) tabPass.classList.add('active');
+    if (panelPhrase) panelPhrase.style.display = 'none';
+    if (panelPass) panelPass.style.display = 'block';
+    if (btnRegen) btnRegen.innerText = 'Nova senha';
+    if (btnUse) btnUse.innerText = 'Copiar senha';
+  }
+  refreshGeneratorDisplay();
+}
+
+async function refreshGeneratorDisplay() {
+  if (state.generatorMode === 'passphrase') {
+    const wordsCount = parseInt(document.getElementById('passphrase-slider').value, 10);
+    const separator = document.getElementById('passphrase-separator').value;
+    const capitalize = document.getElementById('passphrase-case').value;
+    const includeNumber = document.getElementById('passphrase-number').checked;
+
+    const res = await callApi('generate_passphrase', wordsCount, separator, capitalize, includeNumber);
+    if (res && res.passphrase) {
+      document.getElementById('gen-display').value = res.passphrase;
+      const ent = res.entropy;
+      const fill = document.getElementById('gen-meter-fill');
+      const label = document.getElementById('gen-meter-label');
+      const bits = document.getElementById('gen-meter-bits');
+      if (fill) {
+        fill.style.width = `${ent.percentual}%`;
+        fill.style.background = ent.cor;
+      }
+      if (label) {
+        label.innerText = `Força: ${ent.nivel}`;
+        label.style.color = ent.cor;
+      }
+      if (bits) {
+        bits.innerText = `${ent.bits} bits`;
+      }
+    }
+  } else {
+    const len = parseInt(document.getElementById('gen-slider').value, 10);
+    const upper = document.getElementById('gen-upper').checked;
+    const lower = document.getElementById('gen-lower').checked;
+    const digits = document.getElementById('gen-digits').checked;
+    const symbols = document.getElementById('gen-symbols').checked;
+
+    const res = await callApi('generate_password', len, upper, lower, digits, symbols);
+    if (res && res.password) {
+      document.getElementById('gen-display').value = res.password;
+      updateEntropyMeter(res.password, 'gen-meter-fill', 'gen-meter-label', 'gen-meter-bits');
+    }
   }
 }
 
 async function copyGeneratedPassword() {
   const pass = document.getElementById('gen-display').value;
   if (!pass) return;
-  await callApi('copy_to_clipboard', pass, true);
-  triggerToast('Senha gerada copiada com segurança', 15);
+  const res = await callApi('copy_to_clipboard', pass, true);
+  const timeout = (res && res.timeout) ? res.timeout : (state.settings?.clipboard_clear_seconds || 15);
+  const msg = state.generatorMode === 'passphrase' ? 'Frase-senha copiada com segurança' : 'Senha gerada copiada com segurança';
+  triggerToast(msg, timeout);
 }
 
 // Medidor de Entropia
@@ -1124,8 +1297,9 @@ window.copyTotp = async function (id, event) {
   }
   const tokenData = state.totpTokens[id];
   if (tokenData && tokenData.code && tokenData.code !== 'INVÁLIDO') {
-    await callApi('copy_to_clipboard', tokenData.code, true);
-    triggerToast('Código 2FA copiado com segurança', 15);
+    const res = await callApi('copy_to_clipboard', tokenData.code, true);
+    const timeout = (res && res.timeout) ? res.timeout : (state.settings?.clipboard_clear_seconds || 15);
+    triggerToast('Código 2FA copiado com segurança', timeout);
     return;
   }
 
@@ -1134,8 +1308,9 @@ window.copyTotp = async function (id, event) {
   if (!entry || !entry.totp_secret) return;
   const res = await callApi('get_totp_token', entry.totp_secret);
   if (res && res.valid) {
-    await callApi('copy_to_clipboard', res.code, true);
-    triggerToast('Código 2FA copiado com segurança', 15);
+    const copyRes = await callApi('copy_to_clipboard', res.code, true);
+    const timeout = (copyRes && copyRes.timeout) ? copyRes.timeout : (state.settings?.clipboard_clear_seconds || 15);
+    triggerToast('Código 2FA copiado com segurança', timeout);
     refreshTotpTokens();
   } else {
     triggerToast('Chave 2FA inválida ou corrompida', 3);
@@ -1438,6 +1613,125 @@ async function handleExportCsv() {
     closeIoModal();
   } else {
     alert(res?.error || 'Erro ao exportar CSV.');
+  }
+}
+
+/* ==========================================================================
+   AegisCore v1.2.0 — Configurações e Auto-Bloqueio por Inatividade
+   ========================================================================== */
+
+async function loadSettings() {
+  try {
+    const res = await callApi('get_settings');
+    if (res) {
+      state.settings = { ...state.settings, ...res };
+    }
+  } catch (err) {
+    console.warn('Configurações não puderam ser carregadas:', err);
+  }
+}
+
+function setupInactivityListeners() {
+  const events = ['mousemove', 'mousedown', 'keydown', 'wheel', 'touchstart'];
+  events.forEach((evt) => {
+    window.addEventListener(
+      evt,
+      () => {
+        const now = Date.now();
+        // Throttle de 1 segundo para não executar em cada pixel de movimento
+        if (now - state.lastActivityThrottle > 1000) {
+          state.lastActivityThrottle = now;
+          resetInactivityTimer();
+        }
+      },
+      { passive: true }
+    );
+  });
+}
+
+function resetInactivityTimer() {
+  if (state.inactivityTimer) {
+    clearTimeout(state.inactivityTimer);
+    state.inactivityTimer = null;
+  }
+
+  const dashboard = document.getElementById('dashboard-wrapper');
+  const isVaultOpen = dashboard && dashboard.style.display !== 'none';
+  const minutes = Number(state.settings?.auto_lock_minutes ?? 5);
+
+  if (isVaultOpen && minutes > 0) {
+    const timeoutMs = minutes * 60 * 1000;
+    state.inactivityTimer = setTimeout(() => {
+      handleLock(true);
+    }, timeoutMs);
+  }
+}
+
+function stopInactivityTimer() {
+  if (state.inactivityTimer) {
+    clearTimeout(state.inactivityTimer);
+    state.inactivityTimer = null;
+  }
+}
+
+function openSettingsModal() {
+  const modal = document.getElementById('modal-settings');
+  const selAutoLock = document.getElementById('setting-auto-lock');
+  const selClipboard = document.getElementById('setting-clipboard-clear');
+  const chkMinimizeTray = document.getElementById('setting-minimize-tray');
+  const chkAutoTypeEnter = document.getElementById('setting-autotype-enter');
+  const selAutoTypeDelay = document.getElementById('setting-autotype-delay');
+
+  if (selAutoLock) {
+    selAutoLock.value = String(state.settings?.auto_lock_minutes ?? 5);
+  }
+  if (selClipboard) {
+    selClipboard.value = String(state.settings?.clipboard_clear_seconds ?? 15);
+  }
+  if (chkMinimizeTray) {
+    chkMinimizeTray.checked = state.settings?.minimize_to_tray !== false;
+  }
+  if (chkAutoTypeEnter) {
+    chkAutoTypeEnter.checked = state.settings?.autotype_press_enter !== false;
+  }
+  if (selAutoTypeDelay) {
+    selAutoTypeDelay.value = String(state.settings?.autotype_delay_ms ?? 500);
+  }
+  if (modal) modal.classList.add('active');
+}
+
+function closeSettingsModal() {
+  const modal = document.getElementById('modal-settings');
+  if (modal) modal.classList.remove('active');
+}
+
+async function handleSaveSettings() {
+  const selAutoLock = document.getElementById('setting-auto-lock');
+  const selClipboard = document.getElementById('setting-clipboard-clear');
+  const chkMinimizeTray = document.getElementById('setting-minimize-tray');
+  const chkAutoTypeEnter = document.getElementById('setting-autotype-enter');
+  const selAutoTypeDelay = document.getElementById('setting-autotype-delay');
+
+  const newSettings = {
+    auto_lock_minutes: parseInt(selAutoLock.value, 10),
+    clipboard_clear_seconds: parseInt(selClipboard.value, 10),
+    minimize_to_tray: chkMinimizeTray ? chkMinimizeTray.checked : true,
+    autotype_press_enter: chkAutoTypeEnter ? chkAutoTypeEnter.checked : true,
+    autotype_delay_ms: selAutoTypeDelay ? parseInt(selAutoTypeDelay.value, 10) : 500,
+  };
+
+  try {
+    const res = await callApi('update_settings', newSettings);
+    if (res && res.success) {
+      state.settings = { ...state.settings, ...res.settings };
+      closeSettingsModal();
+      resetInactivityTimer();
+      triggerToast('Preferências salvas com sucesso', 3);
+    } else {
+      alert(res?.error || 'Erro ao atualizar preferências.');
+    }
+  } catch (err) {
+    console.error('Erro ao salvar preferências:', err);
   }
 }
 
