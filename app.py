@@ -658,6 +658,89 @@ class TrayIconManager:
                 pass
 
 
+class SingleInstanceManager:
+    """Garante que apenas uma única instância do AegisCore execute por sessão do usuário."""
+
+    def __init__(self, app_id: str = "AegisCore_SingleInstance"):
+        self.app_id = app_id
+        self.mutex_name = f"Local\\{app_id}_Mutex"
+        self.event_name = f"Local\\{app_id}_WakeupEvent"
+        self._mutex = None
+        self._event = None
+        self._stop_listening = False
+        self._listener_thread = None
+
+    def acquire(self) -> bool:
+        """
+        Tenta obter o lock de instância única no Windows via Mutex do Kernel32.
+        Se já existir outra instância em execução, sinaliza para ela restaurar a janela e retorna False.
+        """
+        if sys.platform != "win32":
+            return True
+
+        try:
+            import ctypes
+            k32 = ctypes.windll.kernel32
+            ERROR_ALREADY_EXISTS = 183
+
+            self._mutex = k32.CreateMutexW(None, False, self.mutex_name)
+            last_error = k32.GetLastError()
+
+            if last_error == ERROR_ALREADY_EXISTS:
+                # Já existe uma instância ativa! Sinaliza para ela acordar e restaurar a janela.
+                wakeup_event = k32.OpenEventW(0x0002, False, self.event_name)  # EVENT_MODIFY_STATE
+                if wakeup_event:
+                    k32.SetEvent(wakeup_event)
+                    k32.CloseHandle(wakeup_event)
+                if self._mutex:
+                    k32.CloseHandle(self._mutex)
+                    self._mutex = None
+                return False
+
+            # Primeira instância: cria o evento para escutar futuras tentativas
+            self._event = k32.CreateEventW(None, False, False, self.event_name)
+            return True
+        except Exception:
+            return True
+
+    def start_listener(self, on_wakeup_callback):
+        """Inicia uma thread em segundo plano aguardando sinais de novas instâncias para restaurar a janela."""
+        if sys.platform != "win32" or not self._event:
+            return
+
+        def listener():
+            import ctypes
+            k32 = ctypes.windll.kernel32
+            while not self._stop_listening:
+                wait_result = k32.WaitForSingleObject(self._event, 500)
+                if wait_result == 0:  # WAIT_OBJECT_0
+                    try:
+                        on_wakeup_callback()
+                    except Exception:
+                        pass
+
+        self._listener_thread = threading.Thread(target=listener, daemon=True)
+        self._listener_thread.start()
+
+    def release(self):
+        """Libera os handles do mutex e evento do Windows."""
+        self._stop_listening = True
+        if sys.platform != "win32":
+            return
+
+        try:
+            import ctypes
+            k32 = ctypes.windll.kernel32
+            if self._event:
+                k32.CloseHandle(self._event)
+                self._event = None
+            if self._mutex:
+                k32.CloseHandle(self._mutex)
+                self._mutex = None
+        except Exception:
+            pass
+
+
 def get_resource_path(relative_path: str) -> str:
     """Obtém o caminho absoluto para recursos, funcionando em dev e empacotado pelo PyInstaller."""
     base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
@@ -665,6 +748,10 @@ def get_resource_path(relative_path: str) -> str:
 
 
 def main():
+    single_instance = SingleInstanceManager()
+    if not single_instance.acquire():
+        sys.exit(0)
+
     if sys.platform == "win32":
         try:
             import ctypes
@@ -693,9 +780,12 @@ def main():
     window.events.closing += tray_mgr.on_closing
     tray_mgr.start()
 
+    single_instance.start_listener(tray_mgr.show_window)
+
     try:
         webview.start(debug=False, icon=icon_path if os.path.exists(icon_path) else None)
     finally:
+        single_instance.release()
         tray_mgr.stop()
 
 
