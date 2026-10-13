@@ -114,7 +114,38 @@
     );
   }
 
-  // Posicionamento do badge flutuante à direita do campo de senha
+  const AEGIS_SHIELD_SVG = `
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+      <defs>
+        <linearGradient id="aegisGoldGrad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#fae7b9" />
+          <stop offset="35%" stop-color="#d1a868" />
+          <stop offset="70%" stop-color="#b89153" />
+          <stop offset="100%" stop-color="#735222" />
+        </linearGradient>
+        <linearGradient id="aegisCoreGrad" x1="12" y1="7" x2="12" y2="16" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#ffffff" />
+          <stop offset="35%" stop-color="#fae7b9" />
+          <stop offset="100%" stop-color="#b89153" />
+        </linearGradient>
+        <radialGradient id="aegisCoreBg" cx="12" cy="11" r="10" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#242017" />
+          <stop offset="100%" stop-color="#0e0d09" />
+        </radialGradient>
+      </defs>
+      <!-- Base do Escudo Blindado Aegis -->
+      <path d="M12 2L4 5.5V11.5C4 16.8 7.5 21.4 12 22.5C16.5 21.4 20 16.8 20 11.5V5.5L12 2Z" 
+            fill="url(#aegisCoreBg)" stroke="url(#aegisGoldGrad)" stroke-width="1.6" stroke-linejoin="round" />
+      <!-- Faceta Interna Tática Chanfrada -->
+      <path d="M12 3.8L5.5 6.6V11.5C5.5 15.9 8.2 19.8 12 20.8C15.8 19.8 18.5 15.9 18.5 11.5V6.6L12 3.8Z" 
+            fill="url(#aegisGoldGrad)" fill-opacity="0.16" />
+      <!-- Monograma Tático 'A' do AegisCore -->
+      <path d="M12 7.2L8.6 15H10.3L11 13.1H13L13.7 15H15.4L12 7.2ZM11.6 11.6L12 9.4L12.4 11.6H11.6Z" 
+            fill="url(#aegisCoreGrad)" />
+    </svg>
+  `;
+
+  // Posicionamento do badge flutuante à direita do campo de senha ou login
   function updateBadgePosition(inputEl, badgeEl) {
     if (!isElementVisible(inputEl)) {
       badgeEl.style.display = 'none';
@@ -126,26 +157,37 @@
     const scrollY = window.scrollY || document.documentElement.scrollTop;
 
     badgeEl.style.display = 'flex';
-    badgeEl.style.left = `${rect.right + scrollX - 28}px`;
-    badgeEl.style.top = `${rect.top + scrollY + (rect.height / 2) - 11}px`;
+    badgeEl.style.left = `${rect.right + scrollX - 30}px`;
+    badgeEl.style.top = `${rect.top + scrollY + (rect.height / 2) - 12}px`;
   }
 
-  // Injeção do Badge Desert Gold nos inputs de senha
+  // Injeção do Badge Desert Gold nos inputs de login e senha
   function scanAndInjectBadges() {
-    const passwordInputs = document.querySelectorAll('input[type="password"]');
+    const passwordInputs = Array.from(document.querySelectorAll('input[type="password"]'));
+    const candidateInputs = new Set(passwordInputs);
 
-    passwordInputs.forEach((input) => {
+    // Para cada campo de senha encontrado, busca também o campo de usuário correspondente
+    passwordInputs.forEach((passInput) => {
+      const userInput = findUsernameInputForPassword(passInput);
+      if (userInput) {
+        candidateInputs.add(userInput);
+      }
+    });
+
+    // Inputs com semântica explícita de autenticação
+    const explicitAuthInputs = document.querySelectorAll(
+      'input[autocomplete="username"], input[autocomplete="email"], input[autocomplete="webauthn"]'
+    );
+    explicitAuthInputs.forEach((input) => candidateInputs.add(input));
+
+    candidateInputs.forEach((input) => {
       if (attachedBadges.has(input)) return;
       if (!isElementVisible(input)) return;
 
       const badge = document.createElement('div');
       badge.className = 'aegis-companion-badge';
       badge.setAttribute('title', 'AegisCore — Preenchimento Seguro');
-      badge.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="#b89153" stroke-width="2.2">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        </svg>
-      `;
+      badge.innerHTML = AEGIS_SHIELD_SVG;
 
       badge.addEventListener('click', (e) => {
         e.preventDefault();
@@ -180,9 +222,7 @@
     dropdown.innerHTML = `
       <div class="aegis-dropdown-header">
         <span class="aegis-dropdown-title">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b89153" stroke-width="2">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
+          <span style="width: 14px; height: 14px; display: inline-flex;">${AEGIS_SHIELD_SVG}</span>
           AegisCore Vault
         </span>
         <button type="button" class="aegis-dropdown-close">&times;</button>

@@ -12,12 +12,14 @@ OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "extension", "icons")
 
 def generate_icons():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    logo_path = os.path.join(os.path.dirname(__file__), "ui", "logo.png")
     ico_path = os.path.join(os.path.dirname(__file__), "aegiscore.ico")
+    source_path = logo_path if os.path.exists(logo_path) else ico_path
 
-    if not os.path.exists(ico_path):
-        raise FileNotFoundError(f"Arquivo não encontrado: {ico_path}")
+    if not os.path.exists(source_path):
+        raise FileNotFoundError(f"Arquivo fonte não encontrado: {source_path}")
 
-    with Image.open(ico_path) as img:
+    with Image.open(source_path) as img:
         img = img.convert("RGBA")
         for size in SIZES:
             resized = img.resize((size, size), Image.Resampling.LANCZOS)

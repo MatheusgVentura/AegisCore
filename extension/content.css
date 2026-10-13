@@ -5,34 +5,35 @@
 
 .aegis-companion-badge {
   position: absolute;
-  width: 22px;
-  height: 22px;
-  background-color: #14120d;
+  width: 24px;
+  height: 24px;
+  background: radial-gradient(circle at 35% 35%, #221e15 0%, #100f0a 100%);
   border: 1px solid #b89153;
-  border-radius: 50%;
+  border-radius: 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2147483640;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-  transition: all 0.15s ease-in-out;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(246, 223, 169, 0.25);
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease, border-color 0.15s ease;
   padding: 0;
   margin: 0;
   box-sizing: border-box;
 }
 
 .aegis-companion-badge:hover {
-  transform: scale(1.12);
-  background-color: #1c1912;
-  box-shadow: 0 0 10px rgba(184, 145, 83, 0.6);
-  border-color: #d1a868;
+  transform: scale(1.1);
+  border-color: #fae7b9;
+  background: radial-gradient(circle at 35% 35%, #2a251b 0%, #15130d 100%);
+  box-shadow: 0 0 12px rgba(184, 145, 83, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .aegis-companion-badge svg {
-  width: 13px;
-  height: 13px;
+  width: 17px;
+  height: 17px;
   pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
 }
 
 /* Dropdown Flutuante Inline */
