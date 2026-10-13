@@ -543,6 +543,55 @@ def test_salvar_cofre_permission_retry(monkeypatch):
     assert len(tentativas) == 3
 
 
+def test_extrair_dominio():
+    # Casos com URL completa
+    assert vault_core.extrair_dominio("https://github.com/login") == "github.com"
+    assert vault_core.extrair_dominio("http://www.google.com/search?q=test") == "google.com"
+    assert vault_core.extrair_dominio("https://accounts.google.com:443/signin") == "accounts.google.com"
+
+    # Casos sem protocolo
+    assert vault_core.extrair_dominio("www.netflix.com/browse") == "netflix.com"
+    assert vault_core.extrair_dominio("gitlab.com") == "gitlab.com"
+
+    # Localhost e IPs
+    assert vault_core.extrair_dominio("http://localhost:8080/app") == "localhost"
+    assert vault_core.extrair_dominio("http://192.168.1.100:5000") == "192.168.1.100"
+
+    # Casos inválidos e vazios
+    assert vault_core.extrair_dominio("") == ""
+    assert vault_core.extrair_dominio(None) == ""
+    assert vault_core.extrair_dominio("   ") == ""
+
+
+def test_casar_dominio():
+    # Casamento direto de URL completa com domínio cadastrado
+    assert vault_core.casar_dominio("https://github.com/login", "https://github.com") is True
+    assert vault_core.casar_dominio("https://github.com/login", "github.com") is True
+
+    # Subdomínio casando com domínio pai
+    assert vault_core.casar_dominio("https://accounts.google.com/signin", "google.com") is True
+    assert vault_core.casar_dominio("https://aws.amazon.com/console", "amazon.com") is True
+
+    # Tratamento de www
+    assert vault_core.casar_dominio("https://www.netflix.com/login", "netflix.com") is True
+    assert vault_core.casar_dominio("https://netflix.com", "www.netflix.com") is True
+
+    # Prevenção contra falsos positivos de substring
+    assert vault_core.casar_dominio("https://notgithub.com/login", "github.com") is False
+    assert vault_core.casar_dominio("https://mygoogle.com", "google.com") is False
+    assert vault_core.casar_dominio("https://evil-bank.com", "bank.com") is False
+
+    # Casamento por nome de serviço quando URL cadastrada não está presente
+    assert vault_core.casar_dominio("https://github.com/login", "", servico_cadastrado="GitHub") is True
+    assert vault_core.casar_dominio("https://app.slack.com/client", "", servico_cadastrado="Slack") is True
+    assert vault_core.casar_dominio("https://gitlab.com", "", servico_cadastrado="GitHub") is False
+
+    # Entradas nulas ou inválidas
+    assert vault_core.casar_dominio("", "") is False
+    assert vault_core.casar_dominio(None, None) is False
+
+
+
 
 
 

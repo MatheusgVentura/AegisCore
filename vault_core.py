@@ -14,6 +14,7 @@ import base64
 import re
 import csv
 import io
+from urllib.parse import urlparse
 from typing import Any
 from datetime import datetime
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -833,5 +834,80 @@ def executar_autotype(
         return True
     except Exception:
         return False
+
+
+def extrair_dominio(url_ou_texto: str | None) -> str:
+    """
+    Extrai e normaliza o hostname/domínio base a partir de uma URL ou string.
+    Remove protocolo, porta, caminho, parâmetros e prefixo 'www.'.
+    """
+    if not url_ou_texto or not isinstance(url_ou_texto, str):
+        return ""
+
+    texto = url_ou_texto.strip().lower()
+    if not texto:
+        return ""
+
+    # Se não tiver protocolo, adiciona http:// para urlparse processar corretamente
+    if not (texto.startswith("http://") or texto.startswith("https://")):
+        parsed = urlparse("http://" + texto)
+    else:
+        parsed = urlparse(texto)
+
+    netloc = parsed.netloc or parsed.path.split("/")[0]
+    # Remove porta se presente (ex: localhost:8080 -> localhost)
+    if ":" in netloc:
+        netloc = netloc.split(":")[0]
+
+    # Remove 'www.' do início
+    if netloc.startswith("www."):
+        netloc = netloc[4:]
+
+    return netloc.strip()
+
+
+def casar_dominio(
+    url_alvo: str | None,
+    url_cadastrada: str | None,
+    servico_cadastrado: str = "",
+) -> bool:
+    """
+    Verifica se a URL ativa na aba do navegador corresponde à credencial cadastrada.
+    Suporta:
+    - Casamento exato de domínio
+    - Casamento de subdomínios (ex: accounts.google.com -> google.com)
+    - Casamento pelo nome do serviço se a URL cadastrada for vazia
+    """
+    if not url_alvo:
+        return False
+
+    dom_alvo = extrair_dominio(url_alvo)
+    if not dom_alvo:
+        return False
+
+    # 1. Se houver URL cadastrada, tenta casar pelo domínio
+    if url_cadastrada:
+        dom_cadastrado = extrair_dominio(url_cadastrada)
+        if dom_cadastrado:
+            if dom_alvo == dom_cadastrado:
+                return True
+            # Subdomínio casando com domínio principal (ex: accounts.google.com casando com google.com)
+            if dom_alvo.endswith("." + dom_cadastrado):
+                return True
+            # Domínio cadastrado é subdomínio e alvo é o pai ou vice-versa
+            if dom_cadastrado.endswith("." + dom_alvo):
+                return True
+
+    # 2. Se a URL cadastrada estiver vazia ou não casou, tenta heurística pelo nome do serviço
+    if servico_cadastrado and isinstance(servico_cadastrado, str):
+        servico_limpo = re.sub(r"[^a-z0-9]", "", servico_cadastrado.lower())
+        if len(servico_limpo) >= 3:
+            partes_alvo = dom_alvo.split(".")
+            # Se uma das partes do domínio coincidir com o nome do serviço
+            if any(servico_limpo == p for p in partes_alvo):
+                return True
+
+    return False
+
 
 
