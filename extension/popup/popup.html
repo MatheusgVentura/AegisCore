@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AegisCore Companion</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    
+    <!-- Topo HUD -->
+    <header class="popup-header">
+      <div class="header-brand">
+        <img src="../icons/icon32.png" alt="AegisCore" class="header-logo">
+        <div>
+          <h1 class="header-title">AEGISCORE</h1>
+          <span class="header-subtitle">Companion HUD</span>
+        </div>
+      </div>
+      <div class="status-indicator" id="header-status-badge">
+        <span class="status-dot"></span>
+        <span class="status-text">Conectando...</span>
+      </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="popup-main">
+      
+      <!-- Vista 1: Desktop Offline -->
+      <section id="view-offline" class="view-panel" style="display: none;">
+        <div class="empty-state">
+          <div class="state-icon-box">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+              <line x1="2" y1="2" x2="22" y2="22" stroke="#f43f5e" stroke-width="2"/>
+            </svg>
+          </div>
+          <h2 class="state-title">Desktop Inativo</h2>
+          <p class="state-desc">
+            O aplicativo <strong>AegisCore Desktop</strong> não foi detectado em execução no seu computador (127.0.0.1:18291).
+          </p>
+          <button type="button" class="btn-primary" id="btn-retry-offline">
+            Verificar Novamente
+          </button>
+        </div>
+      </section>
+
+      <!-- Vista 2: Não Pareado -->
+      <section id="view-unpaired" class="view-panel" style="display: none;">
+        <div class="empty-state">
+          <div class="state-icon-box">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+          </div>
+          <h2 class="state-title">Pareamento Necessário</h2>
+          <p class="state-desc">
+            Vincule esta extensão ao seu AegisCore local para permitir preenchimento automático seguro.
+          </p>
+
+          <div id="unpaired-step-request" style="width: 100%;">
+            <button type="button" class="btn-primary" id="btn-start-pairing" style="width: 100%;">
+              Conectar ao AegisCore
+            </button>
+          </div>
+
+          <div id="unpaired-step-code" style="display: none; width: 100%; margin-top: 10px;">
+            <div class="code-box">
+              <span class="code-label">Código de Pareamento</span>
+              <span class="code-value" id="display-pair-code">------</span>
+            </div>
+            <p class="state-desc" style="margin-bottom: 14px; font-size: 11px;">
+              Acesse a janela do <strong>AegisCore Desktop</strong> e confirme a solicitação exibida na tela.
+            </p>
+            <button type="button" class="btn-secondary" id="btn-check-pair-confirm" style="width: 100%;">
+              Já aprovei no Desktop
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Vista 3: Cofre Bloqueado -->
+      <section id="view-locked" class="view-panel" style="display: none;">
+        <div class="empty-state">
+          <div class="state-icon-box state-icon-locked">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h2 class="state-title">Cofre Bloqueado</h2>
+          <p class="state-desc">
+            O cofre local está bloqueado. Insira sua senha mestra no aplicativo desktop para liberar as credenciais.
+          </p>
+          <button type="button" class="btn-primary" id="btn-check-unlocked">
+            Verificar Desbloqueio
+          </button>
+        </div>
+      </section>
+
+      <!-- Vista 4: Conectado e Desbloqueado -->
+      <section id="view-connected" class="view-panel" style="display: none;">
+        
+        <!-- Hostname Atual -->
+        <div class="site-banner">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          <span id="current-domain-text" class="site-domain">carregando...</span>
+        </div>
+
+        <!-- Lista de Credenciais Encontradas -->
+        <div class="entries-container" id="entries-list">
+          <!-- Injetado dinamicamente -->
+        </div>
+
+        <!-- Sem credenciais para o domínio -->
+        <div id="no-credentials-msg" class="empty-card" style="display: none;">
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+            Nenhuma credencial cadastrada para este site.
+          </p>
+          <button type="button" class="btn-secondary" id="btn-open-generator-view" style="width: 100%;">
+            Gerar Senha Forte
+          </button>
+        </div>
+
+        <!-- Painel Rápido de Gerador de Senhas -->
+        <div id="generator-panel" class="generator-panel" style="display: none;">
+          <div class="gen-header">
+            <span>Gerador Tático</span>
+            <button type="button" class="btn-close-sm" id="btn-close-gen">×</button>
+          </div>
+          <div class="gen-output-box">
+            <span id="gen-output-text">••••••••••••••••</span>
+            <button type="button" class="btn-icon" id="btn-copy-gen" title="Copiar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+            </button>
+          </div>
+          <button type="button" class="btn-primary" id="btn-refresh-gen" style="width: 100%; margin-top: 8px;">
+            Gerar Nova Senha
+          </button>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="popup-footer">
+      <button type="button" class="footer-btn" id="btn-toggle-gen-footer" title="Gerador de Senha">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        Gerador
+      </button>
+
+      <span class="footer-version">v2.0.0</span>
+
+      <button type="button" class="footer-btn" id="btn-unpair" title="Desconectar do AegisCore">
+        Desconectar
+      </button>
+    </footer>
+
+    <!-- Toast flutuante de cópia -->
+    <div id="popup-toast" class="popup-toast" style="display: none;">
+      <span id="toast-text">Copiado com sucesso</span>
+    </div>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
