@@ -704,12 +704,15 @@ DEFAULT_SETTINGS = {
     "minimize_to_tray": True,
     "autotype_press_enter": True,
     "autotype_delay_ms": 500,
+    "browser_integration_enabled": True,
+    "companion_port": 18291,
+    "paired_clients": [],
 }
 
 
 def carregar_configuracoes(settings_path: str | None = None) -> dict:
     """
-    Carrega as preferências locais do usuário (auto-bloqueio, clipboard, bandeja, auto-type, etc.).
+    Carrega as preferências locais do usuário (auto-bloqueio, clipboard, bandeja, auto-type, integração com navegador, etc.).
     Retorna os padrões seguros caso o arquivo não exista ou ocorra erro de leitura.
     """
     path = settings_path or SETTINGS_FILE
@@ -739,6 +742,15 @@ def carregar_configuracoes(settings_path: str | None = None) -> dict:
                             config["autotype_delay_ms"] = max(200, min(3000, int(dados["autotype_delay_ms"])))
                         except (ValueError, TypeError):
                             pass
+                    if "browser_integration_enabled" in dados:
+                        config["browser_integration_enabled"] = bool(dados["browser_integration_enabled"])
+                    if "companion_port" in dados:
+                        try:
+                            config["companion_port"] = max(1024, min(65535, int(dados["companion_port"])))
+                        except (ValueError, TypeError):
+                            pass
+                    if "paired_clients" in dados and isinstance(dados["paired_clients"], list):
+                        config["paired_clients"] = list(dados["paired_clients"])
         except Exception:
             pass
 
@@ -772,6 +784,15 @@ def salvar_configuracoes(novas_configuracoes: dict, settings_path: str | None = 
                 config["autotype_delay_ms"] = max(200, min(3000, int(novas_configuracoes["autotype_delay_ms"])))
             except (ValueError, TypeError):
                 pass
+        if "browser_integration_enabled" in novas_configuracoes:
+            config["browser_integration_enabled"] = bool(novas_configuracoes["browser_integration_enabled"])
+        if "companion_port" in novas_configuracoes:
+            try:
+                config["companion_port"] = max(1024, min(65535, int(novas_configuracoes["companion_port"])))
+            except (ValueError, TypeError):
+                pass
+        if "paired_clients" in novas_configuracoes and isinstance(novas_configuracoes["paired_clients"], list):
+            config["paired_clients"] = list(novas_configuracoes["paired_clients"])
 
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     temp_path = f"{path}.tmp"

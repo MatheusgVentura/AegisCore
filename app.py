@@ -6,9 +6,11 @@ Persistência Atômica com Backup e Higienização de Memória
 
 import os
 import sys
+import time
 import uuid
 import threading
 import webbrowser
+from typing import Any
 from datetime import datetime
 import pyperclip
 import webview
@@ -17,6 +19,7 @@ import pystray
 from PIL import Image
 
 import vault_core
+from companion_server import CompanionServer
 
 
 class VaultApi:
@@ -31,6 +34,10 @@ class VaultApi:
         self._last_copied_sensitive: str = ""
         self._last_selected_entry_id: str | None = None
         self._window = None
+        self._companion_server: Any | None = None
+        self._pending_pair_code: str | None = None
+        self._pending_pair_client: str | None = None
+        self._pending_pair_time: float = 0
 
     def set_window(self, window):
         """Define a referência para a janela ativa do pywebview para diálogos do sistema."""
@@ -366,10 +373,138 @@ class VaultApi:
     def update_settings(self, settings: dict) -> dict:
         """Atualiza e persiste as preferências do usuário no disco."""
         try:
+            old_settings = vault_core.carregar_configuracoes()
             saved = vault_core.salvar_configuracoes(settings)
+
+            # Ajusta ciclo de vida do Companion Server se a configuração mudou
+            if self._companion_server:
+                novo_habilitado = saved.get("browser_integration_enabled", True)
+                nova_porta = saved.get("companion_port", 18291)
+                antigo_habilitado = old_settings.get("browser_integration_enabled", True)
+                antiga_porta = old_settings.get("companion_port", 18291)
+
+                if not novo_habilitado and self._companion_server.is_running:
+                    self._companion_server.stop()
+                elif novo_habilitado:
+                    if not self._companion_server.is_running:
+                        self._companion_server.port = nova_porta
+                        self._companion_server.start()
+                    elif nova_porta != antiga_porta:
+                        self._companion_server.stop()
+                        self._companion_server.port = nova_porta
+                        self._companion_server.start()
+
             return {"success": True, "settings": saved}
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+    def is_vault_unlocked(self) -> bool:
+        """Indica se o cofre está desbloqueado em memória."""
+        return len(self._chave) > 0
+
+    def get_entries(self) -> list[dict]:
+        """Retorna lista de entradas em memória."""
+        return list(self._cofre)
+
+    def get_entry_by_id(self, entry_id: str) -> dict | None:
+        """Busca credencial pelo ID."""
+        return next((item for item in self._cofre if item.get("id") == entry_id), None)
+
+    def set_companion_server(self, server: Any):
+        """Define o servidor companion para controle de ciclo de vida e pareamento."""
+        self._companion_server = server
+        if server:
+            server.vault_provider = self
+            server.on_pair_request = self.on_companion_pair_request
+            # Carrega clientes pareados salvos nas configurações
+            settings = vault_core.carregar_configuracoes()
+            server.load_paired_tokens(settings.get("paired_clients", []))
+
+    def on_companion_pair_request(self, code: str, client_name: str):
+        """Callback acionado quando uma extensão solicita pareamento."""
+        self._pending_pair_code = code
+        self._pending_pair_client = client_name
+        self._pending_pair_time = time.time()
+        if self._window:
+            try:
+                self._window.evaluate_js(
+                    f"window.onCompanionPairRequest && window.onCompanionPairRequest('{code}', '{client_name}')"
+                )
+            except Exception:
+                pass
+
+    def get_companion_status(self) -> dict:
+        """Retorna status atual do servidor para a extensão e pareamento."""
+        settings = vault_core.carregar_configuracoes()
+        running = self._companion_server.is_running if self._companion_server else False
+        port = self._companion_server.get_bound_port() if self._companion_server else settings.get("companion_port", 18291)
+        paired_clients = self._companion_server.list_paired_clients() if self._companion_server else []
+
+        pending = None
+        if self._pending_pair_code:
+            if time.time() - self._pending_pair_time <= 120:
+                pending = {
+                    "code": self._pending_pair_code,
+                    "client_name": self._pending_pair_client or "Navegador Web",
+                }
+            else:
+                self._pending_pair_code = None
+                self._pending_pair_client = None
+
+        return {
+            "enabled": settings.get("browser_integration_enabled", True),
+            "running": running,
+            "port": port,
+            "paired_clients": paired_clients,
+            "pending_pair": pending,
+        }
+
+    def confirm_pending_pair(self, code: str) -> dict:
+        """Aprova o pareamento solicitado pelo navegador a partir do HUD Desktop."""
+        if not self._companion_server:
+            return {"success": False, "error": "Servidor de extensão inativo."}
+
+        token = self._companion_server.confirm_pairing(code)
+        if not token:
+            return {"success": False, "error": "Código de pareamento inválido ou expirado."}
+
+        # Atualiza configurações salvas no disco
+        settings = vault_core.carregar_configuracoes()
+        paired = settings.get("paired_clients", [])
+        paired = [p for p in paired if p.get("token") != token]
+        paired.append({
+            "token": token,
+            "client_name": self._pending_pair_client or "Navegador Web",
+            "created_at": time.time(),
+        })
+        vault_core.salvar_configuracoes({"paired_clients": paired})
+
+        self._pending_pair_code = None
+        self._pending_pair_client = None
+        return {"success": True}
+
+    def reject_pending_pair(self) -> dict:
+        """Rejeita ou cancela o pedido pendente de pareamento."""
+        if self._companion_server and self._pending_pair_code:
+            with self._companion_server._lock:
+                if self._pending_pair_code in self._companion_server.pending_pairs:
+                    del self._companion_server.pending_pairs[self._pending_pair_code]
+
+        self._pending_pair_code = None
+        self._pending_pair_client = None
+        return {"success": True}
+
+    def revoke_paired_client(self, token: str) -> dict:
+        """Revoga um token autorizado e atualiza as configurações."""
+        if self._companion_server:
+            self._companion_server.revoke_token(token)
+
+        settings = vault_core.carregar_configuracoes()
+        paired = settings.get("paired_clients", [])
+        novo_paired = [p for p in paired if p.get("token") != token]
+        vault_core.salvar_configuracoes({"paired_clients": novo_paired})
+
+        return {"success": True}
 
     def get_totp_token(self, secret: str) -> dict:
         """Gera código TOTP para um segredo individual."""
@@ -763,7 +898,7 @@ def main():
     if sys.platform == "win32":
         try:
             import ctypes
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("aegiscore.vault.app.1.2")
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("aegiscore.vault.app.2.0")
         except Exception:
             pass
 
@@ -771,6 +906,18 @@ def main():
     icon_path = get_resource_path("aegiscore.ico")
 
     api = VaultApi()
+
+    # Inicializa Companion Server se configurado
+    settings = vault_core.carregar_configuracoes()
+    companion_srv = None
+    if settings.get("browser_integration_enabled", True):
+        port = settings.get("companion_port", 18291)
+        companion_srv = CompanionServer(vault_provider=api, host="127.0.0.1", port=port, on_pair_request=api.on_companion_pair_request)
+        api.set_companion_server(companion_srv)
+        try:
+            companion_srv.start()
+        except Exception:
+            pass
 
     window = webview.create_window(
         title="AegisCore",
@@ -793,6 +940,8 @@ def main():
     try:
         webview.start(debug=False, icon=icon_path if os.path.exists(icon_path) else None)
     finally:
+        if companion_srv:
+            companion_srv.stop()
         single_instance.release()
         tray_mgr.stop()
 

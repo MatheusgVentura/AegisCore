@@ -591,6 +591,73 @@ def test_casar_dominio():
     assert vault_core.casar_dominio(None, None) is False
 
 
+def test_settings_browser_integration_persistence(tmp_path):
+    settings_file = str(tmp_path / "settings_test.json")
+
+    # Padrões
+    defaults = vault_core.carregar_configuracoes(settings_file)
+    assert defaults["browser_integration_enabled"] is True
+    assert defaults["companion_port"] == 18291
+    assert defaults["paired_clients"] == []
+
+    # Salva novas configurações
+    custom = {
+        "browser_integration_enabled": False,
+        "companion_port": 19000,
+        "paired_clients": [{"token": "tok1", "client_name": "Chrome"}],
+    }
+    saved = vault_core.salvar_configuracoes(custom, settings_file)
+    assert saved["browser_integration_enabled"] is False
+    assert saved["companion_port"] == 19000
+    assert len(saved["paired_clients"]) == 1
+
+    # Recarrega do disco
+    reloaded = vault_core.carregar_configuracoes(settings_file)
+    assert reloaded["browser_integration_enabled"] is False
+    assert reloaded["companion_port"] == 19000
+    assert len(reloaded["paired_clients"]) == 1
+
+
+def test_vault_api_companion_methods():
+    from app import VaultApi
+    from companion_server import CompanionServer
+
+    api = VaultApi()
+    server = CompanionServer(vault_provider=api, host="127.0.0.1", port=0)
+    server.start()
+    api.set_companion_server(server)
+
+    try:
+        # Status inicial
+        status = api.get_companion_status()
+        assert status["running"] is True
+        assert status["port"] == server.get_bound_port()
+
+        # Simula pedido de pareamento
+        code = server.create_pairing_request("Test Chrome")
+        status_pending = api.get_companion_status()
+        assert status_pending["pending_pair"] is not None
+        assert status_pending["pending_pair"]["code"] == code
+
+        # Confirma pareamento via VaultApi
+        confirm_res = api.confirm_pending_pair(code)
+        assert confirm_res["success"] is True
+
+        # Verifica se cliente foi pareado
+        status_after = api.get_companion_status()
+        assert status_after["pending_pair"] is None
+        assert len(status_after["paired_clients"]) == 1
+        paired_token = status_after["paired_clients"][0]["token"]
+
+        # Revoga cliente
+        revoke_res = api.revoke_paired_client(paired_token)
+        assert revoke_res["success"] is True
+        assert len(api.get_companion_status()["paired_clients"]) == 0
+    finally:
+        server.stop()
+
+
+
 
 
 
