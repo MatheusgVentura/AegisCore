@@ -62,6 +62,7 @@ AegisCore's security posture strictly obeys **Kerckhoffs's Principle**: security
 
 ## ✨ Features
 
+- **AegisCore Companion Extension (Chrome, Brave, Edge & Firefox):** Official Manifest V3 browser companion for 1-click credential autofill and real-time 2FA/TOTP code injection via local secure loopback IPC (`127.0.0.1:18291`).
 - **Universal Auto-Type (`Ctrl + Alt + V`):** Automatically type credentials directly into any browser or Windows application with safety delays and optional automatic form submission.
 - **System Tray Integration:** Daemonize into Windows notification area with a quick-access tactical menu (unlock, tactical lock, quick password generation, and minimize-on-close).
 - **Proactive Inactivity Auto-Lock:** Configurable idle timer (1, 5, 15, 30, 60 min) that sanitizes RAM keys and clipboard buffer if your workstation is unattended.
@@ -81,10 +82,18 @@ AegisCore's security posture strictly obeys **Kerckhoffs's Principle**: security
 
 ## 🚀 Getting Started
 
+### 🧩 Installing the Browser Companion Extension
+1. In your browser (**Google Chrome**, **Brave**, or **Edge**), navigate to the extensions page: `chrome://extensions` (or `edge://extensions` / `brave://extensions`).
+2. Toggle **Developer mode** in the top-right corner.
+3. Click **Load unpacked** and select the `extension/` directory (or extract `dist/AegisCore-Companion-Extension-v2.0.0.zip`).
+4. Click the AegisCore shield badge on the browser toolbar and select **"Conectar ao AegisCore"**.
+5. Confirm the 6-digit tactical pairing code on your **AegisCore Desktop** app.
+6. Done! 1-click credential autofill badges will now appear in login fields automatically.
+
 ### 🌟 For End Users (No Python required)
 1. Go to the [**Releases**](https://github.com/MatheusgVentura/AegisCore/releases) tab.
-2. Download the standalone portable archive **`AegisCore-Portable-Windows.zip`**.
-3. Extract the `.zip` anywhere and double-click **`AegisCore.exe`**.
+2. Download the official installer **`AegisCore-v2.0.0-Setup.exe`** or portable package **`AegisCore-v2.0.0-Portable-Windows.zip`**.
+3. Run the installer or extract the zip and double-click **`AegisCore.exe`**.
 
 ### 💻 For Developers (Running from source)
 

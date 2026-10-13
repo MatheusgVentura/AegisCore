@@ -2,7 +2,7 @@
 ; Gera o instalador executavel oficial do Windows (estilo KeePassXC / VS Code)
 
 #define MyAppName "AegisCore"
-#define MyAppVersion "1.2.2"
+#define MyAppVersion "2.0.0"
 #define MyAppPublisher "Matheus Ventura"
 #define MyAppURL "https://github.com/MatheusgVentura/AegisCore"
 #define MyAppExeName "AegisCore.exe"
@@ -34,6 +34,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "dist\AegisCore\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "extension\*"; DestDir: "{app}\extension"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\_internal\aegiscore.ico"

@@ -543,6 +543,122 @@ def test_salvar_cofre_permission_retry(monkeypatch):
     assert len(tentativas) == 3
 
 
+def test_extrair_dominio():
+    # Casos com URL completa
+    assert vault_core.extrair_dominio("https://github.com/login") == "github.com"
+    assert vault_core.extrair_dominio("http://www.google.com/search?q=test") == "google.com"
+    assert vault_core.extrair_dominio("https://accounts.google.com:443/signin") == "accounts.google.com"
+
+    # Casos sem protocolo
+    assert vault_core.extrair_dominio("www.netflix.com/browse") == "netflix.com"
+    assert vault_core.extrair_dominio("gitlab.com") == "gitlab.com"
+
+    # Localhost e IPs
+    assert vault_core.extrair_dominio("http://localhost:8080/app") == "localhost"
+    assert vault_core.extrair_dominio("http://192.168.1.100:5000") == "192.168.1.100"
+
+    # Casos inválidos e vazios
+    assert vault_core.extrair_dominio("") == ""
+    assert vault_core.extrair_dominio(None) == ""
+    assert vault_core.extrair_dominio("   ") == ""
+
+
+def test_casar_dominio():
+    # Casamento direto de URL completa com domínio cadastrado
+    assert vault_core.casar_dominio("https://github.com/login", "https://github.com") is True
+    assert vault_core.casar_dominio("https://github.com/login", "github.com") is True
+
+    # Subdomínio casando com domínio pai
+    assert vault_core.casar_dominio("https://accounts.google.com/signin", "google.com") is True
+    assert vault_core.casar_dominio("https://aws.amazon.com/console", "amazon.com") is True
+
+    # Tratamento de www
+    assert vault_core.casar_dominio("https://www.netflix.com/login", "netflix.com") is True
+    assert vault_core.casar_dominio("https://netflix.com", "www.netflix.com") is True
+
+    # Prevenção contra falsos positivos de substring
+    assert vault_core.casar_dominio("https://notgithub.com/login", "github.com") is False
+    assert vault_core.casar_dominio("https://mygoogle.com", "google.com") is False
+    assert vault_core.casar_dominio("https://evil-bank.com", "bank.com") is False
+
+    # Casamento por nome de serviço quando URL cadastrada não está presente
+    assert vault_core.casar_dominio("https://github.com/login", "", servico_cadastrado="GitHub") is True
+    assert vault_core.casar_dominio("https://app.slack.com/client", "", servico_cadastrado="Slack") is True
+    assert vault_core.casar_dominio("https://gitlab.com", "", servico_cadastrado="GitHub") is False
+
+    # Entradas nulas ou inválidas
+    assert vault_core.casar_dominio("", "") is False
+    assert vault_core.casar_dominio(None, None) is False
+
+
+def test_settings_browser_integration_persistence(tmp_path):
+    settings_file = str(tmp_path / "settings_test.json")
+
+    # Padrões
+    defaults = vault_core.carregar_configuracoes(settings_file)
+    assert defaults["browser_integration_enabled"] is True
+    assert defaults["companion_port"] == 18291
+    assert defaults["paired_clients"] == []
+
+    # Salva novas configurações
+    custom = {
+        "browser_integration_enabled": False,
+        "companion_port": 19000,
+        "paired_clients": [{"token": "tok1", "client_name": "Chrome"}],
+    }
+    saved = vault_core.salvar_configuracoes(custom, settings_file)
+    assert saved["browser_integration_enabled"] is False
+    assert saved["companion_port"] == 19000
+    assert len(saved["paired_clients"]) == 1
+
+    # Recarrega do disco
+    reloaded = vault_core.carregar_configuracoes(settings_file)
+    assert reloaded["browser_integration_enabled"] is False
+    assert reloaded["companion_port"] == 19000
+    assert len(reloaded["paired_clients"]) == 1
+
+
+def test_vault_api_companion_methods():
+    from app import VaultApi
+    from companion_server import CompanionServer
+
+    api = VaultApi()
+    server = CompanionServer(vault_provider=api, host="127.0.0.1", port=0)
+    server.start()
+    api.set_companion_server(server)
+
+    try:
+        # Status inicial
+        status = api.get_companion_status()
+        assert status["running"] is True
+        assert status["port"] == server.get_bound_port()
+
+        # Simula pedido de pareamento
+        code = server.create_pairing_request("Test Chrome")
+        status_pending = api.get_companion_status()
+        assert status_pending["pending_pair"] is not None
+        assert status_pending["pending_pair"]["code"] == code
+
+        # Confirma pareamento via VaultApi
+        confirm_res = api.confirm_pending_pair(code)
+        assert confirm_res["success"] is True
+
+        # Verifica se cliente foi pareado
+        status_after = api.get_companion_status()
+        assert status_after["pending_pair"] is None
+        assert len(status_after["paired_clients"]) == 1
+        paired_token = status_after["paired_clients"][0]["token"]
+
+        # Revoga cliente
+        revoke_res = api.revoke_paired_client(paired_token)
+        assert revoke_res["success"] is True
+        assert len(api.get_companion_status()["paired_clients"]) == 0
+    finally:
+        server.stop()
+
+
+
+
 
 
 

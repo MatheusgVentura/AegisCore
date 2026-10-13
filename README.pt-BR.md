@@ -62,6 +62,7 @@ A segurança do AegisCore segue rigorosamente o **Princípio de Kerckhoffs**: a 
 
 ## ✨ Funcionalidades
 
+- **AegisCore Companion Extension (Chrome, Brave, Edge & Firefox):** Extensão oficial Manifest V3 com preenchimento seguro de login e códigos 2FA/TOTP com 1 clique direto nas páginas web via mini-servidor local seguro em loopback (`127.0.0.1:18291`).
 - **Auto-Type Global & Preenchimento Universal (`Ctrl + Alt + V`):** Digite suas credenciais automaticamente em qualquer navegador ou programa do Windows com delay seguro e submissão automática configurável.
 - **Bandeja do Sistema (System Tray Icon):** Opere em segundo plano com menu de contexto rápido para desbloqueio, bloqueio tático, geração expressa de senhas e minimização ao fechar.
 - **Auto-Bloqueio por Inatividade:** Proteção proativa com temporizador configurável (1, 5, 15, 30, 60 min) que higieniza chaves da memória RAM e área de transferência se o computador ficar ocioso.
@@ -81,10 +82,19 @@ A segurança do AegisCore segue rigorosamente o **Princípio de Kerckhoffs**: a 
 
 ## 🚀 Como Usar e Instalar
 
+### 🧩 Como Instalar a Extensão de Navegador (Companion Extension)
+1. No seu navegador (**Google Chrome**, **Brave** ou **Edge**), acesse a página de extensões digitando `chrome://extensions` (ou `edge://extensions` / `brave://extensions`).
+2. Ative a chave **"Modo do desenvolvedor"** no canto superior direito.
+3. Clique no botão **"Carregar sem compactação"** (*Load unpacked*).
+4. Selecione a pasta `extension/` do AegisCore (ou extraia o arquivo `dist/AegisCore-Companion-Extension-v2.0.0.zip`).
+5. Clique no ícone do escudo AegisCore na barra de ferramentas do navegador e selecione **"Conectar ao AegisCore"**.
+6. Uma solicitação com código tático de 6 dígitos abrirá no **AegisCore Desktop**. Clique em **"Autorizar Conexão"**.
+7. Pronto! Os campos de login agora exibirão o badge de 1 clique do AegisCore.
+
 ### 🌟 Para Usuários Finais (Sem precisar ter Python instalado)
 1. Acesse a aba [**Releases**](https://github.com/MatheusgVentura/AegisCore/releases) do repositório.
-2. Baixe o pacote portátil **`AegisCore-Portable-Windows.zip`**.
-3. Extraia o arquivo `.zip` em qualquer pasta e dê dois cliques em **`AegisCore.exe`**.
+2. Baixe o instalador oficial **`AegisCore-v2.0.0-Setup.exe`** ou o pacote portátil **`AegisCore-v2.0.0-Portable-Windows.zip`**.
+3. Extraia o arquivo `.zip` ou execute o instalador e inicie o **`AegisCore.exe`**.
 
 ### 💻 Para Desenvolvedores (Rodando do código-fonte)
 

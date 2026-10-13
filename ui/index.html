@@ -708,11 +708,92 @@
           </span>
         </div>
 
+        <!-- Configuração: Integração com Navegadores (Companion Server) -->
+        <div class="form-field" style="margin-bottom: 20px;">
+          <label class="field-label" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Integração de Navegador (Companion Server)</span>
+            <span class="badge-tag" id="companion-status-badge" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; font-size: 10px; padding: 2px 6px; border-radius: 4px;">🟢 Ativo</span>
+          </label>
+          <label class="checkbox-label" style="margin-top: 6px;">
+            <input type="checkbox" id="setting-browser-integration" checked>
+            Habilitar servidor local seguro para extensões de navegador
+          </label>
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 5px;">
+            Permite que a extensão AegisCore oficial detecte e preencha formulários de login no Chrome, Edge, Brave e Firefox via 127.0.0.1.
+          </span>
+        </div>
+
+        <div class="form-field" style="margin-bottom: 20px;" id="container-companion-port">
+          <label class="field-label" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Porta do Servidor Local (Loopback)</span>
+            <span class="badge-tag" style="background: rgba(184, 145, 83, 0.15); color: var(--gold-primary); font-size: 10px; padding: 2px 6px; border-radius: 4px;">127.0.0.1</span>
+          </label>
+          <input type="number" id="setting-companion-port" class="input-styled" min="1024" max="65535" value="18291" style="width: 100%;">
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 5px;">
+            Porta local padrão: 18291. As extensões se comunicam através de requisições autenticadas por token.
+          </span>
+        </div>
+
+        <!-- Lista de Extensões Pareadas -->
+        <div class="form-field" style="margin-bottom: 24px;" id="container-paired-clients">
+          <label class="field-label" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Navegadores e Extensões Autorizadas</span>
+            <span class="badge-tag" id="companion-paired-count" style="background: rgba(184, 145, 83, 0.15); color: var(--gold-primary); font-size: 10px; padding: 2px 6px; border-radius: 4px;">0 conectadas</span>
+          </label>
+          <div id="companion-paired-list" style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-card); border-radius: 6px; padding: 8px; max-height: 120px; overflow-y: auto; margin-top: 6px; font-size: 12px;">
+            <div style="color: var(--text-muted); text-align: center; padding: 8px;">Nenhuma extensão conectada ainda.</div>
+          </div>
+        </div>
+
         <div class="modal-actions-row">
           <button type="button" class="btn-ghost" id="btn-cancel-settings">Cancelar</button>
           <button type="button" class="btn-primary" id="btn-save-settings">Salvar Preferências</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: Solicitação de Pareamento de Navegador (Companion Extension) -->
+  <div class="modal-backdrop" id="modal-companion-pair">
+    <div class="modal-content" style="max-width: 440px; width: 92%; text-align: center;">
+      <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+        <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(184, 145, 83, 0.15); border: 1px solid var(--gold-primary); display: flex; align-items: center; justify-content: center; color: var(--gold-primary);">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+        </div>
+      </div>
+      
+      <div class="modal-heading" style="justify-content: center; margin-bottom: 6px;">
+        Solicitação de Pareamento
+      </div>
+      <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+        A extensão do navegador <strong id="companion-pair-client" style="color: #ffffff;">Google Chrome</strong> solicitou conexão com o cofre.
+      </div>
+
+      <div class="companion-pulse-box" style="background: rgba(0, 0, 0, 0.5); border: 1px dashed var(--gold-primary); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--gold-primary); margin-bottom: 6px;">
+          Código de Confirmação (6 dígitos)
+        </div>
+        <div id="companion-pair-code" style="font-size: 34px; font-weight: 700; letter-spacing: 6px; color: #ffffff; font-family: 'JetBrains Mono', 'Consolas', monospace;">
+          ------
+        </div>
+      </div>
+
+      <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 22px; line-height: 1.4;">
+        ⚠️ Confirme se este código é idêntico ao exibido na extensão antes de autorizar. A comunicação é 100% local (127.0.0.1) e zero telemetria.
+      </div>
+
+      <div class="modal-actions-row" style="justify-content: center; gap: 12px;">
+        <button type="button" class="btn-ghost" id="btn-reject-companion-pair" style="flex: 1; justify-content: center;">
+          Recusar
+        </button>
+        <button type="button" class="btn-primary" id="btn-confirm-companion-pair" style="flex: 1; justify-content: center;">
+          Autorizar Conexão
+        </button>
+      </div>
     </div>
   </div>
 
