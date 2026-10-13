@@ -54,26 +54,39 @@ Agilizar a operação diária no Windows eliminando atrito ao fazer login em pro
 
 ---
 
-## 🧩 Versão 2.0.0 — Integração com Navegadores (AegisCore Companion Extension)
+## 📦 Versão 2.0.0 — Integração com Navegadores & Companion Extension (Versão Atual)
 
 ### 🎯 Objetivos
-Criar a extensão oficial para Google Chrome, Brave, Edge e Firefox, permitindo preenchimento de login com 1 clique diretamente nas páginas web.
+Criar a extensão oficial para Google Chrome, Brave, Edge e Firefox (Manifest V3) e mini-servidor local seguro em loopback (`127.0.0.1:18291`), permitindo preenchimento de login com 1 clique diretamente nas páginas web com zero telemetria e operação 100% offline.
 
-### 🏗️ Arquitetura Técnica Proposta
-Devido ao isolamento de segurança (*sandbox*) dos navegadores, a extensão não pode ler o arquivo `vault.enc` diretamente. A comunicação será realizada através de um dos modelos abaixo:
+### 🧩 Funcionalidades Entregues
+1. **Mini-Servidor Local Seguro em Loopback (`127.0.0.1:18291`)**
+   - Ouvindo estritamente em loopback (rejeição automática 403 para IPs externos).
+   - Handshake de pareamento tático com código de confirmação de 6 dígitos e emissão de `X-Aegis-Token`.
+   - Consulta protegida de credenciais por domínio e preenchimento sob demanda com 2FA/TOTP em tempo real.
+   - Motor de matching inteligente de URLs/domínios com prevenção de falsos positivos.
 
-#### Opção A: Native Messaging Host (Padrão KeePassXC & 1Password)
-* O instalador do AegisCore registra um manifesto em:
-  `HKEY_CURRENT_USER\Software\Google\Chrome\NativeMessagingHosts\aegiscore_companion`
-* O Chrome abre um canal de comunicação de entrada/saída padrão (`stdin`/`stdout`) com mensagens JSON codificadas com prefixo de tamanho de 4 bytes.
-* **Segurança:** Máxima, pois apenas a extensão com o ID autorizado consegue disparar mensagens.
+2. **AegisCore Companion Extension (Manifest V3)**
+   - Compatível com Google Chrome, Microsoft Edge, Brave Browser e Mozilla Firefox.
+   - **Content Script:** Injeção do badge do escudo Desert Gold em campos de login com menu dropdown tático e eventos sintéticos para frameworks reativos (React, Vue, Angular).
+   - **Popup HUD:** Interface Desert Gold com status de conexão, detecção do site ativo, cópia de credenciais, TOTP e gerador de senhas.
+   - **Service Worker:** Gerenciador persistente de sessão, reconexão e badge de status no ícone do navegador.
 
-#### Opção B: Mini-Servidor Local Seguro (WebSocket Local em `127.0.0.1`)
-* O AegisCore executa um servidor em loopback local (`127.0.0.1:18291`).
-* A extensão se conecta e realiza um handshake de pareamento com código de confirmação na tela (evita que sites maliciosos acessem a porta).
-* Suporte a múltiplos navegadores com um único servidor.
+3. **Desktop HUD & Central de Preferências**
+   - Modal tático de pareamento com código de 6 dígitos em tempo real no AegisCore Desktop.
+   - Gestão de extensões autorizadas com possibilidade de revogação de acessos e porta customizável.
 
-### 📋 Módulos da Extensão (Manifest V3)
-* **Content Script:** Detecta formulários de login (`<input type="password">`, `<input type="email">`).
-* **Injeção com 1 clique:** Ícone do AegisCore dentro do campo para preenchimento imediato.
-* **Popup de Navegador:** Visualização rápida das credenciais da URL atual.
+4. **Empacotamento & Distribuição**
+   - Script automatizado `build_extension.py` gerando `dist/AegisCore-Companion-Extension-v2.0.0.zip`.
+   - Inclusão da extensão descompactada no instalador oficial do Windows (`installer.iss`).
+
+---
+
+## 📦 Versão 1.2.x — Operação Tática, Atalhos & Bandeja (Versão Anterior)
+
+---
+
+## 🧩 Versão 2.1.0 — Evolução & Recursos Avançados (Próximos Passos)
+* Suporte a múltiplos cofres isolados (Pessoal, Trabalho, Projetos).
+* Detecção e oferta automática para salvar novas senhas digitadas no navegador.
+* Atalho configurável de extensão para ativação rápida (`Alt + Shift + V`).

@@ -20,15 +20,19 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [3/3] Criando arquivo portatil zip em dist\...
+echo [3/4] Empacotando extensao de navegador para Chrome/Edge/Firefox...
+python build_extension.py
+
+echo [4/4] Criando arquivo portatil zip em dist\...
 powershell -Command "Compress-Archive -Path 'dist\AegisCore\*' -DestinationPath 'dist\AegisCore-Portable.zip' -Force"
-powershell -Command "Copy-Item 'dist\AegisCore-Portable.zip' 'dist\AegisCore-v1.2.2-Portable-Windows.zip' -Force"
+powershell -Command "Copy-Item 'dist\AegisCore-Portable.zip' 'dist\AegisCore-v2.0.0-Portable-Windows.zip' -Force"
 
 echo.
 echo ======================================================
 echo  Build concluida com sucesso!
 echo  Executavel: dist\AegisCore\AegisCore.exe
-echo  Pacote Zip: dist\AegisCore-Portable.zip
+echo  Pacote Zip: dist\AegisCore-v2.0.0-Portable-Windows.zip
+echo  Extensao:   dist\AegisCore-Companion-Extension-v2.0.0.zip
 echo ======================================================
 echo.
 pause
