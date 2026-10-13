@@ -5,7 +5,10 @@
  */
 
 (() => {
-  // Evita injeção dupla
+  // Limpeza preventiva de quaisquer badges ou dropdowns residuais no DOM
+  document.querySelectorAll('.aegis-companion-badge, .aegis-companion-dropdown').forEach((el) => el.remove());
+
+  // Evita injeção dupla no mesmo contexto
   if (window.__aegisCoreLoaded) return;
   window.__aegisCoreLoaded = true;
 
@@ -15,7 +18,7 @@
   // Escuta comandos vindos do Popup ou Background
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message?.action === 'AUTOFILL_CREDENTIALS') {
-      const result = autofillPageCredentials(message.username, message.password);
+      const result = autofillPageCredentials(message.username, message.password, message.totp);
       sendResponse(result);
       return true;
     }
@@ -48,37 +51,100 @@
     }
   }
 
-  function findUsernameInputForPassword(passInput) {
-    // 1. Tenta achar no mesmo formulário
-    const form = passInput.closest('form');
-    if (form) {
-      const candidates = form.querySelectorAll(
-        'input[type="email"], input[type="text"], input[autocomplete*="user"], input[autocomplete*="email"], input[name*="user"], input[name*="login"], input[name*="email"], input[id*="user"], input[id*="login"], input[id*="email"]'
-      );
-      for (const input of candidates) {
-        if (input !== passInput && isElementVisible(input)) {
-          return input;
-        }
+  // Verificação rigorosa de visibilidade real do elemento na tela
+  function isElementVisible(el) {
+    if (!el || !(el instanceof HTMLElement)) return false;
+    if (el.type === 'hidden') return false;
+
+    // 1. Verificação nativa moderna de visibilidade (Chrome 105+)
+    if (typeof el.checkVisibility === 'function') {
+      if (!el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) {
+        return false;
       }
     }
 
-    // 2. Tenta achar o input imediatamente anterior no DOM
-    const allInputs = Array.from(document.querySelectorAll('input:not([type="hidden"]):not([type="password"])'));
-    const visibleInputs = allInputs.filter(isElementVisible);
-    const passIndex = visibleInputs.findIndex((el) => el.compareDocumentPosition(passInput) & Node.DOCUMENT_POSITION_FOLLOWING);
-    if (passIndex !== -1 && visibleInputs[passIndex]) {
-      return visibleInputs[passIndex];
+    // 2. offsetParent é null quando o elemento ou algum pai tem display: none
+    const style = window.getComputedStyle(el);
+    if (el.offsetParent === null && style.position !== 'fixed') {
+      return false;
+    }
+
+    // 3. Estilos de invisibilidade
+    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0' || parseFloat(style.opacity) < 0.1) {
+      return false;
+    }
+
+    // 4. Dimensões reais do retângulo visível
+    const rect = el.getBoundingClientRect();
+    if (rect.width < 40 || rect.height < 18) {
+      return false;
+    }
+
+    // 5. Atributos de elemento desabilitado/oculto
+    if (el.getAttribute('aria-hidden') === 'true' || el.disabled || el.readOnly) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function findUsernameInputForPassword(passInput) {
+    const form = passInput.closest('form');
+    const container = form || passInput.parentElement?.parentElement || document;
+
+    const candidates = Array.from(
+      container.querySelectorAll('input[type="email"], input[type="text"], input[type="tel"]')
+    ).filter((input) => input !== passInput && isElementVisible(input));
+
+    // Prioridade 1: Campos com autocomplete explícito de identificação
+    for (const input of candidates) {
+      const auto = (input.getAttribute('autocomplete') || '').toLowerCase();
+      if (auto.includes('username') || auto.includes('email')) {
+        return input;
+      }
+    }
+
+    // Prioridade 2: Campos com name ou id sugestivo, excluindo expressamente campos de código/busca/backup
+    const userPatterns = /user|email|login|account|ident/i;
+    for (const input of candidates) {
+      const nameOrId = `${input.name} ${input.id} ${input.placeholder}`;
+      if (userPatterns.test(nameOrId) && !/search|otp|totp|code|backup|pin|captcha/i.test(nameOrId)) {
+        return input;
+      }
+    }
+
+    // Prioridade 3: Se estiver no mesmo form, o input imediatamente anterior que não seja código/busca
+    if (form) {
+      const formTextInputs = candidates.filter((el) => {
+        const nameOrId = `${el.name} ${el.id}`;
+        return !/search|otp|totp|code|backup|pin|captcha/i.test(nameOrId);
+      });
+      const beforeInputs = formTextInputs.filter(
+        (el) => el.compareDocumentPosition(passInput) & Node.DOCUMENT_POSITION_FOLLOWING
+      );
+      if (beforeInputs.length > 0) {
+        return beforeInputs[beforeInputs.length - 1];
+      }
     }
 
     return null;
   }
 
-  function autofillPageCredentials(username, password) {
+  function autofillPageCredentials(username, password, totp) {
     const passwordInputs = Array.from(document.querySelectorAll('input[type="password"]')).filter(isElementVisible);
+
+    // Se for tela de 2FA / TOTP (sem senha)
+    const totpInput = document.querySelector('input[autocomplete="one-time-code"], input[name="app_totp"], input[id="app_totp"]');
+    if (totpInput && isElementVisible(totpInput) && totp) {
+      fillInputValue(totpInput, totp);
+      return { success: true, count: 1 };
+    }
 
     if (passwordInputs.length === 0) {
       // Se não houver campo de senha visível (ex: login de duas etapas, etapa 1 de e-mail)
-      const usernameInput = document.querySelector('input[type="email"], input[type="text"][autocomplete*="user"], input[name*="user"], input[name*="login"]');
+      const usernameInput = document.querySelector(
+        'input[type="email"], input[type="text"][autocomplete*="user"], input[name*="user"], input[name*="login"]'
+      );
       if (usernameInput && username) {
         fillInputValue(usernameInput, username);
         return { success: true, count: 1 };
@@ -99,19 +165,6 @@
     }
 
     return { success: filledCount > 0, count: filledCount };
-  }
-
-  function isElementVisible(el) {
-    if (!el || !el.getBoundingClientRect) return false;
-    const rect = el.getBoundingClientRect();
-    const style = window.getComputedStyle(el);
-    return (
-      rect.width > 20 &&
-      rect.height > 15 &&
-      style.visibility !== 'hidden' &&
-      style.display !== 'none' &&
-      style.opacity !== '0'
-    );
   }
 
   const AEGIS_SHIELD_SVG = `
@@ -161,12 +214,37 @@
     badgeEl.style.top = `${rect.top + scrollY + (rect.height / 2) - 12}px`;
   }
 
-  // Injeção do Badge Desert Gold nos inputs de login e senha
+  // Injeção do Badge Desert Gold nos inputs com proteção anti-duplicação
   function scanAndInjectBadges() {
-    const passwordInputs = Array.from(document.querySelectorAll('input[type="password"]'));
+    // 1. Limpeza de badges órfãos ou desconectados
+    for (const [input, badge] of attachedBadges.entries()) {
+      if (!input.isConnected || !isElementVisible(input)) {
+        badge.remove();
+        attachedBadges.delete(input);
+        delete input.dataset.aegisBadgeAttached;
+      }
+    }
+
+    // 2. Remoção de elementos residuais no DOM não rastreados
+    const domBadges = document.querySelectorAll('.aegis-companion-badge');
+    domBadges.forEach((domBadge) => {
+      let isTracked = false;
+      for (const badge of attachedBadges.values()) {
+        if (badge === domBadge) {
+          isTracked = true;
+          break;
+        }
+      }
+      if (!isTracked) {
+        domBadge.remove();
+      }
+    });
+
+    // 3. Coleta de candidatos estritamente válidos
+    const passwordInputs = Array.from(document.querySelectorAll('input[type="password"]')).filter(isElementVisible);
     const candidateInputs = new Set(passwordInputs);
 
-    // Para cada campo de senha encontrado, busca também o campo de usuário correspondente
+    // Para cada campo de senha encontrado, busca o campo de usuário correspondente
     passwordInputs.forEach((passInput) => {
       const userInput = findUsernameInputForPassword(passInput);
       if (userInput) {
@@ -174,15 +252,43 @@
       }
     });
 
-    // Inputs com semântica explícita de autenticação
-    const explicitAuthInputs = document.querySelectorAll(
-      'input[autocomplete="username"], input[autocomplete="email"], input[autocomplete="webauthn"]'
-    );
+    // Inputs com autocomplete explícito de identificação
+    const explicitAuthInputs = Array.from(
+      document.querySelectorAll('input[autocomplete="username"], input[autocomplete="email"]')
+    ).filter(isElementVisible);
     explicitAuthInputs.forEach((input) => candidateInputs.add(input));
 
+    // Inputs de TOTP em telas de 2FA (apenas o principal)
+    const totpInputs = Array.from(
+      document.querySelectorAll('input[autocomplete="one-time-code"], input[name="app_totp"], input[id="app_totp"]')
+    ).filter(isElementVisible);
+    if (totpInputs.length > 0) {
+      candidateInputs.add(totpInputs[0]); // Apenas o primeiro, NUNCA backup code!
+    }
+
+    // 4. Injeção com deduplicação espacial
     candidateInputs.forEach((input) => {
-      if (attachedBadges.has(input)) return;
       if (!isElementVisible(input)) return;
+
+      // Se já está anexado, apenas atualiza posição
+      if (attachedBadges.has(input) || input.dataset.aegisBadgeAttached === 'true') {
+        const existingBadge = attachedBadges.get(input);
+        if (existingBadge) {
+          updateBadgePosition(input, existingBadge);
+        }
+        return;
+      }
+
+      // Prevenção de colisão espacial com outros badges já posicionados
+      const rect = input.getBoundingClientRect();
+      for (const [existingInput] of attachedBadges.entries()) {
+        const existingRect = existingInput.getBoundingClientRect();
+        const dX = Math.abs(rect.left - existingRect.left);
+        const dY = Math.abs(rect.top - existingRect.top);
+        if (dX < 15 && dY < 15) {
+          return; // Já existe um badge cobrindo a mesma área visual
+        }
+      }
 
       const badge = document.createElement('div');
       badge.className = 'aegis-companion-badge';
@@ -197,6 +303,7 @@
 
       document.body.appendChild(badge);
       attachedBadges.set(input, badge);
+      input.dataset.aegisBadgeAttached = 'true';
       updateBadgePosition(input, badge);
     });
   }
@@ -273,7 +380,7 @@
           itemEl.addEventListener('click', () => {
             chrome.runtime.sendMessage({ action: 'GET_FILL', id: entry.id }, (fillRes) => {
               if (fillRes && fillRes.success && fillRes.entry) {
-                autofillPageCredentials(fillRes.entry.usuario, fillRes.entry.senha);
+                autofillPageCredentials(fillRes.entry.usuario, fillRes.entry.senha, fillRes.entry.totp);
               }
               dropdown.remove();
               activeDropdown = null;
@@ -307,7 +414,7 @@
   let debounceTimeout = null;
   const observer = new MutationObserver(() => {
     clearTimeout(debounceTimeout);
-    debounceTimeout = setTimeout(scanAndInjectBadges, 300);
+    debounceTimeout = setTimeout(scanAndInjectBadges, 250);
   });
 
   observer.observe(document.body || document.documentElement, {
