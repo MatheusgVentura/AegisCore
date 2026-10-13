@@ -1,0 +1,151 @@
+/* ==========================================================================
+   AegisCore Companion — Content Script Styles
+   Totalmente isolado com prefixo 'aegis-companion-' para não quebrar estilos de páginas web.
+   ========================================================================== */
+
+.aegis-companion-badge {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background-color: #14120d;
+  border: 1px solid #b89153;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483640;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  transition: all 0.15s ease-in-out;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.aegis-companion-badge:hover {
+  transform: scale(1.12);
+  background-color: #1c1912;
+  box-shadow: 0 0 10px rgba(184, 145, 83, 0.6);
+  border-color: #d1a868;
+}
+
+.aegis-companion-badge svg {
+  width: 13px;
+  height: 13px;
+  pointer-events: none;
+}
+
+/* Dropdown Flutuante Inline */
+.aegis-companion-dropdown {
+  position: absolute;
+  width: 280px;
+  max-width: 90vw;
+  background: #110f0a !important;
+  border: 1px solid #b89153 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.85) !important;
+  z-index: 2147483647 !important;
+  padding: 10px !important;
+  color: #f3f1ed !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  box-sizing: border-box !important;
+  animation: aegisFadeIn 0.15s ease-out;
+}
+
+@keyframes aegisFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.aegis-companion-dropdown * {
+  box-sizing: border-box !important;
+  font-family: inherit !important;
+}
+
+.aegis-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #2e2618;
+}
+
+.aegis-dropdown-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #b89153;
+}
+
+.aegis-dropdown-close {
+  background: transparent;
+  border: none;
+  color: #8e8677;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.aegis-dropdown-close:hover {
+  color: #ffffff;
+}
+
+.aegis-dropdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.aegis-dropdown-item {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(184, 145, 83, 0.15);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.aegis-dropdown-item:hover {
+  background: rgba(184, 145, 83, 0.12);
+  border-color: #b89153;
+}
+
+.aegis-item-service {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.aegis-item-user {
+  font-size: 11px;
+  color: #8e8677;
+}
+
+.aegis-dropdown-footer {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #2e2618;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #8e8677;
+}
