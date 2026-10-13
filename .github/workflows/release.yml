@@ -31,7 +31,11 @@ jobs:
 
       - name: Build executable with PyInstaller
         run: |
-          python -m PyInstaller --name "AegisCore" --noconsole --icon "aegiscore.ico" --add-data "ui;ui" --add-data "aegiscore.ico;." --clean --noconfirm app.py
+          python -m PyInstaller --clean --noconfirm AegisCore.spec
+
+      - name: Package Companion Extension
+        run: |
+          python build_extension.py
 
       - name: Create Portable Zip
         run: |
@@ -52,6 +56,7 @@ jobs:
           files: |
             dist/AegisCore-Portable-Windows.zip
             dist/AegisCore-v*-Setup.exe
+            dist/AegisCore-Companion-Extension-*.zip
           draft: false
           prerelease: false
           generate_release_notes: true

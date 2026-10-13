@@ -19,6 +19,7 @@ let state = {
   generatorMode: 'password',
   inactivityTimer: null,
   lastActivityThrottle: 0,
+  pendingCompanionCode: null,
 };
 
 // Comunicação com API Python
@@ -64,6 +65,9 @@ async function initApp() {
     panelSetup.style.display = 'block';
     document.getElementById('input-setup-pass').focus();
   }
+
+  // Monitora solicitações de pareamento em background a cada 4 segundos
+  setInterval(loadCompanionStatus, 4000);
 }
 
 function switchView(viewName) {
@@ -329,14 +333,21 @@ function setupEventListeners() {
   document.getElementById('btn-cancel-delete').addEventListener('click', closeDeleteModal);
   document.getElementById('btn-confirm-delete').addEventListener('click', handleConfirmDelete);
 
+  // Pareamento da Extensão de Navegador
+  const btnConfirmPair = document.getElementById('btn-confirm-companion-pair');
+  if (btnConfirmPair) btnConfirmPair.addEventListener('click', authorizeCompanionPair);
+  const btnRejectPair = document.getElementById('btn-reject-companion-pair');
+  if (btnRejectPair) btnRejectPair.addEventListener('click', rejectCompanionPair);
+
   // Fechamento de modais ao clicar no backdrop (fora da janela modal)
-  ['modal-entry', 'modal-gen', 'modal-delete', 'modal-io', 'modal-settings'].forEach((id) => {
+  ['modal-entry', 'modal-gen', 'modal-delete', 'modal-io', 'modal-settings', 'modal-companion-pair'].forEach((id) => {
     const backdrop = document.getElementById(id);
     if (backdrop) {
       backdrop.addEventListener('click', (e) => {
         if (e.target === backdrop) {
           backdrop.classList.remove('active');
           if (id === 'modal-delete') state.pendingDeleteId = null;
+          if (id === 'modal-companion-pair') state.pendingCompanionCode = null;
         }
       });
     }
@@ -1707,6 +1718,8 @@ function openSettingsModal() {
   const chkMinimizeTray = document.getElementById('setting-minimize-tray');
   const chkAutoTypeEnter = document.getElementById('setting-autotype-enter');
   const selAutoTypeDelay = document.getElementById('setting-autotype-delay');
+  const chkBrowser = document.getElementById('setting-browser-integration');
+  const inputPort = document.getElementById('setting-companion-port');
 
   if (selAutoLock) {
     selAutoLock.value = String(state.settings?.auto_lock_minutes ?? 5);
@@ -1723,6 +1736,14 @@ function openSettingsModal() {
   if (selAutoTypeDelay) {
     selAutoTypeDelay.value = String(state.settings?.autotype_delay_ms ?? 500);
   }
+  if (chkBrowser) {
+    chkBrowser.checked = state.settings?.browser_integration_enabled !== false;
+  }
+  if (inputPort) {
+    inputPort.value = String(state.settings?.companion_port ?? 18291);
+  }
+
+  loadCompanionStatus();
   if (modal) modal.classList.add('active');
 }
 
@@ -1737,6 +1758,8 @@ async function handleSaveSettings() {
   const chkMinimizeTray = document.getElementById('setting-minimize-tray');
   const chkAutoTypeEnter = document.getElementById('setting-autotype-enter');
   const selAutoTypeDelay = document.getElementById('setting-autotype-delay');
+  const chkBrowser = document.getElementById('setting-browser-integration');
+  const inputPort = document.getElementById('setting-companion-port');
 
   const newSettings = {
     auto_lock_minutes: parseInt(selAutoLock.value, 10),
@@ -1744,6 +1767,8 @@ async function handleSaveSettings() {
     minimize_to_tray: chkMinimizeTray ? chkMinimizeTray.checked : true,
     autotype_press_enter: chkAutoTypeEnter ? chkAutoTypeEnter.checked : true,
     autotype_delay_ms: selAutoTypeDelay ? parseInt(selAutoTypeDelay.value, 10) : 500,
+    browser_integration_enabled: chkBrowser ? chkBrowser.checked : true,
+    companion_port: inputPort ? parseInt(inputPort.value, 10) : 18291,
   };
 
   try {
@@ -1758,6 +1783,118 @@ async function handleSaveSettings() {
     }
   } catch (err) {
     console.error('Erro ao salvar preferências:', err);
+  }
+}
+
+/* ==========================================================================
+   Integração com Navegadores (Companion Extension)
+   ========================================================================== */
+
+window.onCompanionPairRequest = function (code, clientName) {
+  state.pendingCompanionCode = code;
+  const clientEl = document.getElementById('companion-pair-client');
+  const codeEl = document.getElementById('companion-pair-code');
+  const modal = document.getElementById('modal-companion-pair');
+  if (clientEl) clientEl.innerText = clientName || 'Navegador Web';
+  if (codeEl) codeEl.innerText = code || '------';
+  if (modal) modal.classList.add('active');
+};
+
+window.authorizeCompanionPair = async function () {
+  if (!state.pendingCompanionCode) return;
+  try {
+    const res = await callApi('confirm_pending_pair', state.pendingCompanionCode);
+    if (res && res.success) {
+      triggerToast('Extensão de navegador autorizada com sucesso', 3);
+      const modal = document.getElementById('modal-companion-pair');
+      if (modal) modal.classList.remove('active');
+      state.pendingCompanionCode = null;
+      loadCompanionStatus();
+    } else {
+      triggerToast(res?.error || 'Falha ao autorizar pareamento', 3);
+    }
+  } catch (err) {
+    console.error('Erro ao confirmar pareamento:', err);
+  }
+};
+
+window.rejectCompanionPair = async function () {
+  try {
+    await callApi('reject_pending_pair');
+  } catch (err) {
+    console.error('Erro ao rejeitar pareamento:', err);
+  }
+  const modal = document.getElementById('modal-companion-pair');
+  if (modal) modal.classList.remove('active');
+  state.pendingCompanionCode = null;
+};
+
+window.revokeCompanionClient = async function (token) {
+  if (!confirm('Deseja realmente revogar o acesso desta extensão?')) return;
+  try {
+    const res = await callApi('revoke_paired_client', token);
+    if (res && res.success) {
+      triggerToast('Acesso da extensão revogado', 3);
+      loadCompanionStatus();
+    }
+  } catch (err) {
+    console.error('Erro ao revogar extensão:', err);
+  }
+};
+
+async function loadCompanionStatus() {
+  try {
+    const status = await callApi('get_companion_status');
+    if (!status) return;
+
+    const badge = document.getElementById('companion-status-badge');
+    if (badge) {
+      if (status.running) {
+        badge.innerText = `🟢 Ativo (127.0.0.1:${status.port})`;
+        badge.style.background = 'rgba(34, 197, 94, 0.15)';
+        badge.style.color = '#4ade80';
+      } else {
+        badge.innerText = '⚪ Inativo';
+        badge.style.background = 'rgba(156, 163, 175, 0.15)';
+        badge.style.color = '#9ca3af';
+      }
+    }
+
+    const countBadge = document.getElementById('companion-paired-count');
+    const pairedList = document.getElementById('companion-paired-list');
+    const clients = status.paired_clients || [];
+
+    if (countBadge) {
+      countBadge.innerText = `${clients.length} ${clients.length === 1 ? 'conectada' : 'conectadas'}`;
+    }
+
+    if (pairedList) {
+      if (clients.length === 0) {
+        pairedList.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 8px;">Nenhuma extensão conectada ainda.</div>';
+      } else {
+        pairedList.innerHTML = clients.map((c) => {
+          const dateStr = c.created_at ? new Date(c.created_at * 1000).toLocaleDateString('pt-BR') : '';
+          return `
+            <div class="paired-client-row">
+              <div class="paired-client-info">
+                <span class="paired-client-name">${escapeHtml(c.client_name)}</span>
+                <span class="paired-client-meta">Token: ${escapeHtml(c.token_preview)} ${dateStr ? `• ${dateStr}` : ''}</span>
+              </div>
+              <button type="button" class="btn-danger-ghost" style="padding: 4px 8px; font-size: 11px;" onclick="revokeCompanionClient('${escapeAttr(c.token)}')">
+                Revogar
+              </button>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // Se houver pedido pendente e modal não estiver ativo
+    if (status.pending_pair && !document.getElementById('modal-companion-pair')?.classList.contains('active')) {
+      window.onCompanionPairRequest(status.pending_pair.code, status.pending_pair.client_name);
+    }
+  } catch (err) {
+    console.error('Erro ao carregar status do companion:', err);
   }
 }
 
