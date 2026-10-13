@@ -122,6 +122,59 @@ async function checkServerStatus() {
   return status;
 }
 
+let pairingPollingTimer = null;
+
+function stopPairingPolling() {
+  if (pairingPollingTimer) {
+    clearInterval(pairingPollingTimer);
+    pairingPollingTimer = null;
+  }
+}
+
+function startPairingPolling(code) {
+  stopPairingPolling();
+  const startTime = Date.now();
+
+  pairingPollingTimer = setInterval(async () => {
+    // Se passou de 120s, encerra o polling
+    if (Date.now() - startTime > 120000) {
+      stopPairingPolling();
+      await setStorageData({ pendingPair: null });
+      return;
+    }
+
+    // Se já foi pareado, para
+    const currentToken = await getAuthToken();
+    if (currentToken) {
+      stopPairingPolling();
+      await setStorageData({ pendingPair: null });
+      return;
+    }
+
+    const res = await fetchLocalApi('/api/confirm-pair', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+
+    if (res.ok && res.data && res.data.success && res.data.token) {
+      // Pareamento aprovado com sucesso no Desktop!
+      stopPairingPolling();
+      await setStorageData({
+        aegisToken: res.data.token,
+        pendingPair: null,
+      });
+      await checkServerStatus();
+      return;
+    }
+
+    // Se o código expirou ou falhou fatalmente
+    if (!res.ok && res.status === 400) {
+      stopPairingPolling();
+      await setStorageData({ pendingPair: null });
+    }
+  }, 1200);
+}
+
 // Início do pareamento com o Desktop
 async function requestPairing(clientName) {
   const name = clientName || 'Navegador Web';
@@ -131,9 +184,18 @@ async function requestPairing(clientName) {
   });
 
   if (res.ok && res.data && res.data.success) {
+    const code = res.data.code;
+    await setStorageData({
+      pendingPair: {
+        code,
+        clientName: name,
+        createdAt: Date.now(),
+      },
+    });
+    startPairingPolling(code);
     return {
       success: true,
-      code: res.data.code,
+      code,
       status: 'pending',
     };
   }
@@ -151,16 +213,38 @@ async function confirmPairing(code) {
     body: JSON.stringify({ code }),
   });
 
-  if (res.ok && res.data && res.data.token) {
-    await setStorageData({ aegisToken: res.data.token });
+  if (res.ok && res.data && res.data.success && res.data.token) {
+    stopPairingPolling();
+    await setStorageData({
+      aegisToken: res.data.token,
+      pendingPair: null,
+    });
     await checkServerStatus();
     return { success: true };
   }
 
+  if (res.ok && res.data && res.data.waiting) {
+    return {
+      success: false,
+      waiting: true,
+      error: res.data.error || 'Aguardando autorização no AegisCore Desktop.',
+    };
+  }
+
+  stopPairingPolling();
+  await setStorageData({ pendingPair: null });
   return {
     success: false,
+    waiting: false,
     error: res.data?.error || 'Código de confirmação incorreto ou expirado.',
   };
+}
+
+// Cancelar solicitação de pareamento
+async function cancelPairing() {
+  stopPairingPolling();
+  await setStorageData({ pendingPair: null });
+  return { success: true };
 }
 
 // Consulta de credenciais para a URL ativa
@@ -248,7 +332,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'GET_STATUS': {
           const status = await checkServerStatus();
           const token = await getAuthToken();
-          sendResponse({ success: true, status, isPaired: !!token });
+          const storage = await getStorageData(['pendingPair']);
+          let validPending = null;
+          if (storage.pendingPair && (Date.now() - (storage.pendingPair.createdAt || 0)) <= 120000) {
+            validPending = storage.pendingPair;
+            if (!token && !pairingPollingTimer) {
+              startPairingPolling(validPending.code);
+            }
+          } else if (storage.pendingPair) {
+            await setStorageData({ pendingPair: null });
+            stopPairingPolling();
+          }
+          sendResponse({
+            success: true,
+            status,
+            isPaired: !!token,
+            pendingPair: validPending,
+          });
           break;
         }
 
@@ -260,6 +360,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         case 'CONFIRM_PAIR': {
           const result = await confirmPairing(message.code);
+          sendResponse(result);
+          break;
+        }
+
+        case 'CANCEL_PAIR': {
+          const result = await cancelPairing();
           sendResponse(result);
           break;
         }
@@ -308,5 +414,14 @@ chrome.alarms?.onAlarm.addListener((alarm) => {
   }
 });
 
-// Checa status na inicialização
-checkServerStatus();
+// Checa status e restaura polling na inicialização se houver pareamento pendente
+(async () => {
+  await checkServerStatus();
+  const token = await getAuthToken();
+  if (!token) {
+    const storage = await getStorageData(['pendingPair']);
+    if (storage.pendingPair && (Date.now() - (storage.pendingPair.createdAt || 0)) <= 120000) {
+      startPairingPolling(storage.pendingPair.code);
+    }
+  }
+})();

@@ -7,6 +7,7 @@
 let currentTab = null;
 let currentDomain = '';
 let currentPairCode = null;
+let popupPairTimer = null;
 let totpInterval = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -21,6 +22,7 @@ function setupEventListeners() {
   // Pareamento
   document.getElementById('btn-start-pairing')?.addEventListener('click', handleStartPairing);
   document.getElementById('btn-check-pair-confirm')?.addEventListener('click', handleCheckPairConfirm);
+  document.getElementById('btn-cancel-pairing')?.addEventListener('click', handleCancelPairing);
 
   // Rodapé
   document.getElementById('btn-unpair')?.addEventListener('click', handleUnpair);
@@ -62,6 +64,34 @@ function switchView(viewId) {
   });
 }
 
+function stopPopupPairPolling() {
+  if (popupPairTimer) {
+    clearInterval(popupPairTimer);
+    popupPairTimer = null;
+  }
+}
+
+function startPopupPairPolling() {
+  stopPopupPairPolling();
+  popupPairTimer = setInterval(() => {
+    if (!currentPairCode) {
+      stopPopupPairPolling();
+      return;
+    }
+    chrome.runtime.sendMessage({ action: 'CONFIRM_PAIR', code: currentPairCode }, (res) => {
+      if (res && res.success) {
+        stopPopupPairPolling();
+        showToast('Extensão conectada com sucesso!');
+        setTimeout(refreshPopupState, 300);
+      } else if (res && !res.waiting) {
+        // Expirou ou cancelado
+        stopPopupPairPolling();
+        refreshPopupState();
+      }
+    });
+  }, 1500);
+}
+
 async function refreshPopupState() {
   // Obtém aba ativa
   try {
@@ -87,14 +117,16 @@ async function refreshPopupState() {
   // Consulta status do background service worker
   chrome.runtime.sendMessage({ action: 'GET_STATUS' }, (res) => {
     if (chrome.runtime.lastError || !res || !res.success) {
+      stopPopupPairPolling();
       setHeaderStatus('offline', 'Offline');
       switchView('view-offline');
       return;
     }
 
-    const { status, isPaired } = res;
+    const { status, isPaired, pendingPair } = res;
 
     if (!status.online) {
+      stopPopupPairPolling();
       setHeaderStatus('offline', 'Desktop Inativo');
       switchView('view-offline');
       return;
@@ -103,8 +135,29 @@ async function refreshPopupState() {
     if (!isPaired) {
       setHeaderStatus('offline', 'Não Conectado');
       switchView('view-unpaired');
+
+      // Se há um pareamento pendente em andamento
+      if (pendingPair && pendingPair.code) {
+        currentPairCode = pendingPair.code;
+        const codeEl = document.getElementById('display-pair-code');
+        if (codeEl) codeEl.innerText = pendingPair.code;
+        const reqStep = document.getElementById('unpaired-step-request');
+        const codeStep = document.getElementById('unpaired-step-code');
+        if (reqStep) reqStep.style.display = 'none';
+        if (codeStep) codeStep.style.display = 'block';
+        startPopupPairPolling();
+      } else {
+        currentPairCode = null;
+        stopPopupPairPolling();
+        const reqStep = document.getElementById('unpaired-step-request');
+        const codeStep = document.getElementById('unpaired-step-code');
+        if (reqStep) reqStep.style.display = 'block';
+        if (codeStep) codeStep.style.display = 'none';
+      }
       return;
     }
+
+    stopPopupPairPolling();
 
     if (!status.unlocked) {
       setHeaderStatus('locked', 'Cofre Bloqueado');
@@ -132,6 +185,7 @@ function handleStartPairing() {
       document.getElementById('display-pair-code').innerText = res.code;
       document.getElementById('unpaired-step-request').style.display = 'none';
       document.getElementById('unpaired-step-code').style.display = 'block';
+      startPopupPairPolling();
     } else {
       showToast(res?.error || 'Erro ao iniciar pareamento.');
     }
@@ -142,16 +196,34 @@ function handleCheckPairConfirm() {
   if (!currentPairCode) return;
   chrome.runtime.sendMessage({ action: 'CONFIRM_PAIR', code: currentPairCode }, (res) => {
     if (res && res.success) {
+      stopPopupPairPolling();
       showToast('Extensão conectada com sucesso!');
       setTimeout(refreshPopupState, 400);
+    } else if (res && res.waiting) {
+      showToast('Aguardando autorização no AegisCore Desktop.');
     } else {
-      showToast(res?.error || 'Aguardando autorização no Desktop.');
+      stopPopupPairPolling();
+      showToast(res?.error || 'Código expirado ou inválido.');
+      setTimeout(refreshPopupState, 800);
     }
+  });
+}
+
+function handleCancelPairing() {
+  stopPopupPairPolling();
+  chrome.runtime.sendMessage({ action: 'CANCEL_PAIR' }, () => {
+    currentPairCode = null;
+    const reqStep = document.getElementById('unpaired-step-request');
+    const codeStep = document.getElementById('unpaired-step-code');
+    if (reqStep) reqStep.style.display = 'block';
+    if (codeStep) codeStep.style.display = 'none';
+    showToast('Pareamento cancelado.');
   });
 }
 
 function handleUnpair() {
   if (!confirm('Deseja desconectar a extensão do AegisCore Desktop?')) return;
+  stopPopupPairPolling();
   chrome.runtime.sendMessage({ action: 'UNPAIR' }, () => {
     showToast('Extensão desconectada.');
     refreshPopupState();

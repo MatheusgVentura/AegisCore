@@ -104,19 +104,26 @@ class CompanionRequestHandler(BaseHTTPRequestHandler):
             })
             return
 
-        # 2. Confirmação do Pareamento
+        # 2. Confirmação do Pareamento (consulta/resgate de token pela extensão)
         if self.path == "/api/confirm-pair":
             code = str(data.get("code") or "").strip()
-            token = server.confirm_pairing(code)
-            if token:
+            status_info = server.get_pairing_status(code)
+            if status_info.get("success"):
                 self._send_json({
                     "success": True,
-                    "token": token,
+                    "token": status_info.get("token"),
                 })
+            elif status_info.get("waiting"):
+                self._send_json({
+                    "success": False,
+                    "waiting": True,
+                    "error": status_info.get("error"),
+                }, 200)
             else:
                 self._send_json({
                     "success": False,
-                    "error": "Código de pareamento inválido ou expirado.",
+                    "waiting": False,
+                    "error": status_info.get("error", "Código de pareamento inválido ou expirado."),
                 }, 400)
             return
 
@@ -274,15 +281,24 @@ class CompanionServer:
             return self.server.server_address[1]
         return self.port
 
+    def _cleanup_expired_pairs(self) -> None:
+        """Remove solicitações de pareamento expiradas (>120s)."""
+        now = time.time()
+        expired = [c for c, p in self.pending_pairs.items() if now - p.get("created_at", 0) > 120]
+        for c in expired:
+            del self.pending_pairs[c]
+
     def create_pairing_request(self, client_name: str) -> str:
         """Gera um código de 6 dígitos para confirmação de pareamento."""
         with self._lock:
+            self._cleanup_expired_pairs()
             code = f"{secrets.randbelow(900000) + 100000:06d}"
             token = secrets.token_hex(32)
             self.pending_pairs[code] = {
                 "client_name": client_name,
                 "created_at": time.time(),
                 "token": token,
+                "approved": False,
             }
 
             if self.on_pair_request:
@@ -293,23 +309,62 @@ class CompanionServer:
 
             return code
 
-    def confirm_pairing(self, code: str) -> str | None:
-        """Confirma e efetiva o pareamento caso o código seja válido e não expirado (120s)."""
+    def approve_pairing(self, code: str) -> str | None:
+        """Aprova o pareamento solicitado pelo navegador (chamado pelo AegisCore Desktop)."""
         with self._lock:
+            self._cleanup_expired_pairs()
             pair = self.pending_pairs.get(code)
             if not pair:
                 return None
 
-            if time.time() - pair["created_at"] > 120:
-                del self.pending_pairs[code]
-                return None
-
+            pair["approved"] = True
             token = pair["token"]
             self.authorized_tokens[token] = {
                 "client_name": pair["client_name"],
                 "created_at": time.time(),
             }
-            del self.pending_pairs[code]
+            # Mantém em pending_pairs para que a extensão capture via /api/confirm-pair
+            return token
+
+    def get_pairing_status(self, code: str) -> dict:
+        """Verifica o status de aprovação de um código de pareamento para a extensão."""
+        with self._lock:
+            self._cleanup_expired_pairs()
+            pair = self.pending_pairs.get(code)
+            if not pair:
+                return {
+                    "success": False,
+                    "waiting": False,
+                    "error": "Código de pareamento inválido ou expirado.",
+                }
+
+            if not pair.get("approved"):
+                return {
+                    "success": False,
+                    "waiting": True,
+                    "error": "Aguardando autorização no AegisCore Desktop.",
+                }
+
+            token = pair["token"]
+            return {
+                "success": True,
+                "token": token,
+            }
+
+    def confirm_pairing(self, code: str) -> str | None:
+        """Confirma e efetiva o pareamento (aprovação direta ou compatibilidade retroativa)."""
+        with self._lock:
+            self._cleanup_expired_pairs()
+            pair = self.pending_pairs.get(code)
+            if not pair:
+                return None
+
+            pair["approved"] = True
+            token = pair["token"]
+            self.authorized_tokens[token] = {
+                "client_name": pair["client_name"],
+                "created_at": time.time(),
+            }
             return token
 
     def generate_and_register_token(self, client_name: str) -> str:

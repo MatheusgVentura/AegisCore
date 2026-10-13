@@ -139,7 +139,22 @@ def test_companion_server_pairing_flow(companion_server):
     assert status == 400
     assert err_resp["success"] is False
 
-    # 3. Confirmação com código correto
+    # 3. Consulta da extensão antes da aprovação do Desktop (deve aguardar)
+    status, waiting_resp = _make_request(
+        f"{base_url}/api/confirm-pair",
+        method="POST",
+        data={"code": code},
+    )
+    assert status == 200
+    assert waiting_resp["success"] is False
+    assert waiting_resp["waiting"] is True
+
+    # 4. Aprovação pelo AegisCore Desktop
+    approved_token = server.approve_pairing(code)
+    assert approved_token is not None
+    assert len(approved_token) >= 32
+
+    # 5. Consulta da extensão após aprovação do Desktop (deve receber token com sucesso)
     status, confirm_resp = _make_request(
         f"{base_url}/api/confirm-pair",
         method="POST",
@@ -148,7 +163,7 @@ def test_companion_server_pairing_flow(companion_server):
     assert status == 200
     assert confirm_resp["success"] is True
     token = confirm_resp["token"]
-    assert len(token) >= 32
+    assert token == approved_token
     assert server.validate_token(token) is True
 
 

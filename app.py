@@ -464,7 +464,9 @@ class VaultApi:
         if not self._companion_server:
             return {"success": False, "error": "Servidor de extensão inativo."}
 
-        token = self._companion_server.confirm_pairing(code)
+        token = self._companion_server.approve_pairing(code)
+        if not token:
+            token = self._companion_server.confirm_pairing(code)
         if not token:
             return {"success": False, "error": "Código de pareamento inválido ou expirado."}
 
